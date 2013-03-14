@@ -45,6 +45,7 @@
 #include <QMutexLocker>
 #include <QEvent>
 #include <QObject>
+#include <QFileDialog>
 
 // VTK
 #include <vtkRenderWindow.h>
@@ -68,12 +69,22 @@ PCDVideoPlayer::PCDVideoPlayer ()
   
   this->setWindowTitle ("PCL PCD Video Player");
 
-  // Set up the source window
+  // Create the list of motions
+  motions_ << "In_between_motions" << "Jumping_jacks" << "Wave_left" << "Wave_right" << "Forbid_left";
+
+  /*
+
+  // Set up the qvtk window
   vis_.reset (new pcl::visualization::PCLVisualizer ("", false));
-  ui_->qvtk_widget->SetRenderWindow (vis_>getRenderWindow ());
-  vis_->setupInteractor (ui_->qvtk_widget->GetInteractor (), ui_->qvtk_widget->GetRenderWindow ());
+  ui_->qvtkWidget->SetRenderWindow (vis_>getRenderWindow ());
+  vis_->setupInteractor (ui_->qvtkWidget->GetInteractor (), ui_->qvtkWidget->GetRenderWindow ());
   vis_->getInteractorStyle ()->setKeyboardModifier (pcl::visualization::INTERACTOR_KB_MOD_SHIFT);
-  ui_->qvtk_widget->update ();
+  ui_->qvtkWidget->update ();
+
+*/
+
+  // Configure the motion Type box
+  ui_->motionTypeBox->addItems(motions_);
 
   // Connect all buttons
   connect (ui_->playButton, SIGNAL(clicked()), this, SLOT(playButtonPressed()));
@@ -85,6 +96,9 @@ PCDVideoPlayer::PCDVideoPlayer ()
   connect (ui_->selectFilesButton, SIGNAL(clicked()), this, SLOT(selectFilesButtonPressed()));
   
   connect (ui_->indexSlider, SIGNAL(valueChanged(int)), this, SLOT(indexSliderValueChanged(int)));
+
+  connect (ui_->motionTypeBox, SIGNAL(currentIndexChanged (int)), this, SLOT(motionTypeBoxCurrentIndexChanged(int)));
+
 }
 
 void 
@@ -121,12 +135,19 @@ void
 PCDVideoPlayer::selectFolderButtonPressed()
 {
   dir_ = QFileDialog::getExistingDirectory(this, tr("Open Directory"), "/home", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks); 
+  std::cout << "[PCDVideoPlayer::selectFolderButtonPressed] : selected : " << dir_.toAscii().data() << std::endl;
+
+  current_frame_ = 0;
 }
 
 void 
 PCDVideoPlayer::selectFilesButtonPressed()
 {
   pcd_files_ = QFileDialog::getOpenFileNames(this, "Select one or more PCD files to open", "/home", "PointClouds (*.pcd)");
+  nr_of_frames_ = pcd_files_.size();
+  std::cout << "[PCDVideoPlayer::selectFilesButtonPressed] : selected " << nr_of_frames_ << " files" << std::endl;
+
+  current_frame_ = 0;
 }
 
 void 
@@ -160,6 +181,12 @@ void
 PCDVideoPlayer::indexSliderValueChanged(int value)
 {
   PCL_INFO("[PCDVideoPlayer::indexSliderValueChanged] : (I) : value %d", value);
+}
+
+void
+PCDVideoPlayer::motionTypeBoxCurrentIndexChanged(int index)
+{
+  std::cout << "[PCDVideoPlayer::motionTypeBoxCurrentIndexChanged] : selected index " << index << std::endl;
 }
 
 void

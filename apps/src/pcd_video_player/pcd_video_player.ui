@@ -47,6 +47,20 @@
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_2">
      <item>
+      <widget class="QPushButton" name="selectFilesButton">
+       <property name="text">
+        <string>Select PCD Files</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="selectFolderButton">
+       <property name="text">
+        <string>Select Folder</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <spacer name="verticalSpacer">
        <property name="orientation">
         <enum>Qt::Vertical</enum>
@@ -60,18 +74,28 @@
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="selectFilesButton">
+      <widget class="QRadioButton" name="beginMotionRadioButton">
        <property name="text">
-        <string>Select PCD Files</string>
+        <string>Begin Motion</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="selectFolderButton">
+      <widget class="QRadioButton" name="inMotionRadioButton">
        <property name="text">
-        <string>Select Folder</string>
+        <string>In Motion</string>
        </property>
       </widget>
+     </item>
+     <item>
+      <widget class="QRadioButton" name="endMotionRadioButton">
+       <property name="text">
+        <string>End Motion</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="motionTypeBox"/>
      </item>
      <item>
       <widget class="QPushButton" name="saveButton">

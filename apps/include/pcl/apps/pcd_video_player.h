@@ -87,6 +87,8 @@ namespace Ui
   class MainWindow;
 }
 
+
+
 class PCDVideoPlayer : public QMainWindow
 {
   Q_OBJECT
@@ -104,13 +106,18 @@ class PCDVideoPlayer : public QMainWindow
   protected:
     boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
 
-    QMutex mtx_;
-    QMutex vis_mtx_;
-    Ui::MainWindow *ui_;
-    QTimer *vis_timer_;
+    QMutex          mtx_;
+    QMutex          vis_mtx_;
+    Ui::MainWindow  *ui_;
+    QTimer          *vis_timer_;
+
+    QString         dir_;
+    QStringList     pcd_files_;
     
-    QString dir_;
-    QStringList pcd_files_;
+    QStringList     motions_;
+
+    unsigned int    current_frame_;
+    unsigned int    nr_of_frames_;
 
   public slots:
     void 
@@ -126,7 +133,11 @@ class PCDVideoPlayer : public QMainWindow
     void 
     selectFolderButtonPressed();
     void
+    selectFilesButtonPressed();
+    void
     indexSliderValueChanged(int value);
+    void
+    motionTypeBoxCurrentIndexChanged(int index);
 
   private slots:
     void
