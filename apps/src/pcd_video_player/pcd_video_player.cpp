@@ -38,7 +38,11 @@
  * @author: Koen Buys - KU Leuven
  */
 
+//PCL
 #include <pcl/apps/pcd_video_player.h>
+
+#include <iostream>
+#include <boost/filesystem.hpp>
 
 //QT4
 #include <QApplication>
@@ -46,6 +50,9 @@
 #include <QEvent>
 #include <QObject>
 #include <QFileDialog>
+#include <QGroupBox>
+#include <QRadioButton>
+#include <QButtonGroup>
 
 // VTK
 #include <vtkRenderWindow.h>
@@ -70,21 +77,19 @@ PCDVideoPlayer::PCDVideoPlayer ()
   this->setWindowTitle ("PCL PCD Video Player");
 
   // Create the list of motions
-  motions_ << "In_between_motions" << "Jumping_jacks" << "Wave_left" << "Wave_right" << "Forbid_left";
-
-  /*
+  static_motions_ << "Unclassified" << "T_pose" << "Straight_pose";
+  free_motions_ << "Unclassified" << "Jumping_jacks" << "Wave_left" << "Wave_right" << "Forbid_left";
+  object_motions_ << "Unclassified" << "Water" << "Cucumber" << "Pancake" << "Wipe";
 
   // Set up the qvtk window
   vis_.reset (new pcl::visualization::PCLVisualizer ("", false));
-  ui_->qvtkWidget->SetRenderWindow (vis_>getRenderWindow ());
+  ui_->qvtkWidget->SetRenderWindow (vis_->getRenderWindow ());
   vis_->setupInteractor (ui_->qvtkWidget->GetInteractor (), ui_->qvtkWidget->GetRenderWindow ());
   vis_->getInteractorStyle ()->setKeyboardModifier (pcl::visualization::INTERACTOR_KB_MOD_SHIFT);
   ui_->qvtkWidget->update ();
 
-*/
-
   // Configure the motion Type box
-  ui_->motionTypeBox->addItems(motions_);
+  ui_->motionTypeBox->addItems(static_motions_);
 
   // Connect all buttons
   connect (ui_->playButton, SIGNAL(clicked()), this, SLOT(playButtonPressed()));
@@ -95,13 +100,43 @@ PCDVideoPlayer::PCDVideoPlayer ()
   connect (ui_->selectFolderButton, SIGNAL(clicked()), this, SLOT(selectFolderButtonPressed()));
   connect (ui_->selectFilesButton, SIGNAL(clicked()), this, SLOT(selectFilesButtonPressed()));
   
+  connect (ui_->staticRadioButton, SIGNAL(pressed()), this, SLOT(staticRadioButtonPressed()));
+  connect (ui_->freeRadioButton, SIGNAL(pressed()), this, SLOT(freeRadioButtonPressed()));
+  connect (ui_->objectRadioButton, SIGNAL(pressed()), this, SLOT(objectRadioButtonPressed()));
+
   connect (ui_->indexSlider, SIGNAL(valueChanged(int)), this, SLOT(indexSliderValueChanged(int)));
 
-  connect (ui_->motionTypeBox, SIGNAL(currentIndexChanged (int)), this, SLOT(motionTypeBoxCurrentIndexChanged(int)));
+  // Not needed for now
+  //connect (ui_->motionTypeBox, SIGNAL(currentIndexChanged (int)), this, SLOT(motionTypeBoxCurrentIndexChanged(int)));
 
 }
 
 void 
+PCDVideoPlayer::staticRadioButtonPressed()
+{
+  // Configure the motion Type box
+  ui_->motionTypeBox->clear();
+  ui_->motionTypeBox->addItems(static_motions_);
+}
+
+void
+PCDVideoPlayer::freeRadioButtonPressed()
+{
+  // Configure the motion Type box
+  ui_->motionTypeBox->clear();
+  ui_->motionTypeBox->addItems(free_motions_);
+}
+
+void
+PCDVideoPlayer::objectRadioButtonPressed()
+{
+  // Configure the motion Type box
+  ui_->motionTypeBox->clear();
+  ui_->motionTypeBox->addItems(object_motions_);
+}
+
+
+void
 PCDVideoPlayer::playButtonPressed()
 {
 
@@ -137,27 +172,77 @@ PCDVideoPlayer::saveButtonPressed()
 void 
 PCDVideoPlayer::selectFolderButtonPressed()
 {
-  dir_ = QFileDialog::getExistingDirectory(this, tr("Open Directory"), "/home", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks); 
+  pcd_files_.clear();     // Clear the std::vector
+  pcd_paths_.clear();     // Clear the boost filesystem paths
+
+  dir_ = QFileDialog::getExistingDirectory(this, tr("Open Directory"), "/home", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+
   std::cout << "[PCDVideoPlayer::selectFolderButtonPressed] : selected : " << dir_.toAscii().data() << std::endl;
 
   current_frame_ = 0;
 
+  boost::filesystem::directory_iterator end_itr;
 
+  if(boost::filesystem::is_directory(dir_.toStdString()))
+  {
+    for (boost::filesystem::directory_iterator itr(dir_.toStdString()); itr != end_itr; ++itr)
+    {
+      std::string ext = itr->path().extension().string();
+      if(ext.compare(".pcd") == 0)
+      {
+        pcd_files_.push_back (itr->path ().string ());
+        pcd_paths_.push_back (itr->path ());
+      }
+      else
+      {
+        // Found non pcd file
+      }
+//#ifdef VERBOSE
+        std::cout << "String : \t" << itr->path().string() << std::endl;
+        std::cout << "Extension : \t" << itr->path().extension() << std::endl;
+        std::cout << "Filename : \t" << itr->path().filename() << std::endl;
+        //std::cout << "Root_dir" << itr->path().root_directory() << std::endl;
+        //std::cout << "Root_path" << itr->path().root_path() << std::endl;
+        //std::cout << "Root_name" << itr->path().root_name() << std::endl;
+        //std::cout << "rel_path" << itr->path().relative_path() << std::endl;
+        //std::cout << "parent_path" << itr->path().parent_path() << std::endl;
+//#endif //VERBOSE
+    }
+  }
+  else
+  {
+    PCL_ERROR("RGB path is not a directory\n");
+    exit(-1);
+  }
+  nr_of_frames_ = pcd_files_.size();
+  std::cout << "[PCDVideoPlayer::selectFolderButtonPressed] : found " << nr_of_frames_ << " files" << std::endl;
+
+  // Reset the Slider
+  ui_->indexSlider->setValue(0);                // set cursor back in the beginning
+  ui_->indexSlider->setRange(0,nr_of_frames_-1);  // rescale the slider
 
 }
 
 void 
 PCDVideoPlayer::selectFilesButtonPressed()
 {
-  pcd_files_ = QFileDialog::getOpenFileNames(this, "Select one or more PCD files to open", "/home", "PointClouds (*.pcd)");
-  nr_of_frames_ = pcd_files_.size();
+  pcd_files_.clear();  // Clear the std::vector
+  pcd_paths_.clear();     // Clear the boost filesystem paths
+
+  QStringList qt_pcd_files = QFileDialog::getOpenFileNames(this, "Select one or more PCD files to open", "/home", "PointClouds (*.pcd)");
+  nr_of_frames_ = qt_pcd_files.size();
   std::cout << "[PCDVideoPlayer::selectFilesButtonPressed] : selected " << nr_of_frames_ << " files" << std::endl;
+
+  for(int i = 0; i < qt_pcd_files.size(); i++)
+  {
+    pcd_files_.push_back(qt_pcd_files.at(i).toStdString());
+  }
 
   current_frame_ = 0;
 
   // Reset the Slider
   ui_->indexSlider->setValue(0);                // set cursor back in the beginning
-  ui_->indexSlider->setRange(0,nr_of_frames_);  // rescale the slider
+  ui_->indexSlider->setRange(0,nr_of_frames_-1);  // rescale the slider
 }
 
 void 

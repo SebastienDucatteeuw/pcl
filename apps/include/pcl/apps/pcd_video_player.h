@@ -36,6 +36,8 @@
 
 #include <ui_pcd_video_player.h>
 
+#include <iostream>
+
 // QT4
 #include <QMainWindow>
 #include <QMutex>
@@ -43,6 +45,7 @@
 
 // Boost
 #include <boost/thread/thread.hpp>
+#include <boost/filesystem.hpp>
 
 // PCL
 #include <pcl/console/print.h>
@@ -99,9 +102,7 @@ class PCDVideoPlayer : public QMainWindow
 
     PCDVideoPlayer ();
 
-    ~PCDVideoPlayer ()
-    {
-    }
+    ~PCDVideoPlayer () {}
 
   protected:
     boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
@@ -112,14 +113,27 @@ class PCDVideoPlayer : public QMainWindow
     QTimer          *vis_timer_;
 
     QString         dir_;
-    QStringList     pcd_files_;
     
-    QStringList     motions_;
+    std::vector<std::string>              pcd_files_;
+    std::vector<boost::filesystem::path>  pcd_paths_;
+
+    //QStringList     pcd_files_;
+
+    QStringList     static_motions_;
+    QStringList     free_motions_;
+    QStringList     object_motions_;
 
     unsigned int    current_frame_;
     unsigned int    nr_of_frames_;
 
   public slots:
+    void
+    staticRadioButtonPressed();
+    void
+    freeRadioButtonPressed();
+    void
+    objectRadioButtonPressed();
+
     void 
     playButtonPressed();
     void 
@@ -134,6 +148,7 @@ class PCDVideoPlayer : public QMainWindow
     selectFolderButtonPressed();
     void
     selectFilesButtonPressed();
+
     void
     indexSliderValueChanged(int value);
     void
