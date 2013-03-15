@@ -128,7 +128,10 @@ PCDVideoPlayer::nextButtonPressed()
 void 
 PCDVideoPlayer::saveButtonPressed()
 {
-
+  PCL_INFO("[PCDVideoPlayer::saveButtonPressed] : (I) : called\n");
+  PCL_INFO("[PCDVideoPlayer::saveButtonPressed] : (I) : Begin Motion %d\n", ui_->beginMotionRadioButton->isChecked());
+  PCL_INFO("[PCDVideoPlayer::saveButtonPressed] : (I) : In Motion %d\n", ui_->inMotionRadioButton->isChecked());
+  PCL_INFO("[PCDVideoPlayer::saveButtonPressed] : (I) : End Motion %d\n", ui_->endMotionRadioButton->isChecked());
 }
 
 void 
@@ -138,6 +141,9 @@ PCDVideoPlayer::selectFolderButtonPressed()
   std::cout << "[PCDVideoPlayer::selectFolderButtonPressed] : selected : " << dir_.toAscii().data() << std::endl;
 
   current_frame_ = 0;
+
+
+
 }
 
 void 
@@ -148,6 +154,10 @@ PCDVideoPlayer::selectFilesButtonPressed()
   std::cout << "[PCDVideoPlayer::selectFilesButtonPressed] : selected " << nr_of_frames_ << " files" << std::endl;
 
   current_frame_ = 0;
+
+  // Reset the Slider
+  ui_->indexSlider->setValue(0);                // set cursor back in the beginning
+  ui_->indexSlider->setRange(0,nr_of_frames_);  // rescale the slider
 }
 
 void 
@@ -180,7 +190,7 @@ PCDVideoPlayer::timeoutSlot ()
 void
 PCDVideoPlayer::indexSliderValueChanged(int value)
 {
-  PCL_INFO("[PCDVideoPlayer::indexSliderValueChanged] : (I) : value %d", value);
+  PCL_INFO("[PCDVideoPlayer::indexSliderValueChanged] : (I) : value %d\n", value);
 }
 
 void
