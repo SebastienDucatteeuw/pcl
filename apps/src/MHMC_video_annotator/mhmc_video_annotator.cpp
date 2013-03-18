@@ -91,9 +91,22 @@ MHMCVideoAnnotator::MHMCVideoAnnotator ()
   
   this->setWindowTitle ("MHMC Video Annotator");
 
-  // Create the list of motions
-  static_motions_ << "Unclassified" << "T_pose" << "Straight_pose";
-  free_motions_ << "Unclassified" << "Jumping_jacks" << "Wave_left" << "Wave_right" << "Forbid_left";
+  // Create the list of static poses
+  static_motions_ << "Unclassified"     << "Neutral_pose"     << "T_pose"     << "U_pose"           << "Straight_pose"  << "Forward_pose";
+  static_motions_ << "Right_angle_pose" << "Left_angle_pose"  << "Hip_pose"   << "Right_knee_pose"  << "Left_knee_pose" << "Right_knee_back";
+  static_motions_ << "Left_knee_back"   << "Right_leg_front"  << "Right_front_foot" << "Left_leg_front" << "Left_front_foot";
+  static_motions_ << "Right_leg_back"   << "Left_leg_back"    << "Right_stop" << "Left_stop" << "Both_stop";
+
+  // Create the list of motions in free space
+  free_motions_ << "Unclassified" << "Beckon_left" << "Beckon_right" << "Dance" << "Ballet" << "Forbid_left";
+  free_motions_ << "Forbid_right" << "Frisbee_left" << "Frisbee_right" << "Front_kick_left" << "Front_kick_right";
+  free_motions_ << "Jog_in_place" << "Jump_one_leg" << "Jump_two_leg" << "Jump" << "Jumping_jacks";
+  free_motions_ << "Knee_sit" << "Knee_twist_right" << "Knee_twist_left" << "Leg_swing" << "Macarena";
+  free_motions_ << "Ow" << "Point_left" << "Point_right" << "Rope_skip_walk" << "Rope_skip" << "Side_bend";
+  free_motions_ << "Side_twists" << "Squat_jump" << "Squats" << "Thinker" << "Trow_kiss" << "Walk_turn";
+  free_motions_ << "Walk" << "Wave_left" << "Wave_right" << "YMCA";
+
+  // Create the list of motions in interaction with object
   object_motions_ << "Unclassified" << "Water" << "Cucumber" << "Pancake" << "Wipe";
 
   // Setup the cloud pointer
