@@ -39,7 +39,7 @@
  */
 
 //PCL
-#include <pcl/apps/pcd_video_player.h>
+#include <pcl/apps/MHMC_video_annotator/mhmc_video_annotator.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 
@@ -72,7 +72,7 @@ using namespace pcl;
 using namespace std;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
-PCDVideoPlayer::PCDVideoPlayer ()
+MHMCVideoAnnotator::MHMCVideoAnnotator ()
 {
   cloud_present_ = false;
   cloud_modified_ = false;
@@ -132,7 +132,7 @@ PCDVideoPlayer::PCDVideoPlayer ()
 }
 
 void 
-PCDVideoPlayer::staticRadioButtonPressed()
+MHMCVideoAnnotator::staticRadioButtonPressed()
 {
   // Configure the motion Type box
   ui_->motionTypeBox->clear();
@@ -140,7 +140,7 @@ PCDVideoPlayer::staticRadioButtonPressed()
 }
 
 void
-PCDVideoPlayer::freeRadioButtonPressed()
+MHMCVideoAnnotator::freeRadioButtonPressed()
 {
   // Configure the motion Type box
   ui_->motionTypeBox->clear();
@@ -148,7 +148,7 @@ PCDVideoPlayer::freeRadioButtonPressed()
 }
 
 void
-PCDVideoPlayer::objectRadioButtonPressed()
+MHMCVideoAnnotator::objectRadioButtonPressed()
 {
   // Configure the motion Type box
   ui_->motionTypeBox->clear();
@@ -156,23 +156,23 @@ PCDVideoPlayer::objectRadioButtonPressed()
 }
 
 void
-PCDVideoPlayer::playButtonPressed()
+MHMCVideoAnnotator::playButtonPressed()
 {
   play_mode_ = true;
 }
 
 void 
-PCDVideoPlayer::stopButtonPressed()
+MHMCVideoAnnotator::stopButtonPressed()
 {
   play_mode_= false;
 }
 
 void 
-PCDVideoPlayer::backButtonPressed()
+MHMCVideoAnnotator::backButtonPressed()
 {
   if(current_frame_ == 0) // Allready in the beginning
   {
-    PCL_DEBUG ("[PCDVideoPlayer::nextButtonPressed] : reached the end\n");
+    PCL_DEBUG ("[MHMCVideoAnnotator::nextButtonPressed] : reached the end\n");
     current_frame_ = nr_of_frames_-1; // reset to end
   }
   else
@@ -184,11 +184,11 @@ PCDVideoPlayer::backButtonPressed()
 }
 
 void 
-PCDVideoPlayer::nextButtonPressed()
+MHMCVideoAnnotator::nextButtonPressed()
 {
   if(current_frame_ == (nr_of_frames_-1)) // Reached the end
   {
-    PCL_DEBUG ("[PCDVideoPlayer::nextButtonPressed] : reached the end\n");
+    PCL_DEBUG ("[MHMCVideoAnnotator::nextButtonPressed] : reached the end\n");
     current_frame_ = 0; // reset to beginning
   }
   else
@@ -200,9 +200,9 @@ PCDVideoPlayer::nextButtonPressed()
 }
 
 void 
-PCDVideoPlayer::saveButtonPressed()
+MHMCVideoAnnotator::saveButtonPressed()
 {
-  PCL_DEBUG ("[PCDVideoPlayer::saveButtonPressed] : (I) : called\n");
+  PCL_DEBUG ("[MHMCVideoAnnotator::saveButtonPressed] : (I) : called\n");
 
   if(cloud_present_)
   {
@@ -225,14 +225,14 @@ PCDVideoPlayer::saveButtonPressed()
   }
   else
   {
-    PCL_ERROR ("[PCDVideoPlayer::saveButtonPressed] : please load PCD files first!\n");
+    PCL_ERROR ("[MHMCVideoAnnotator::saveButtonPressed] : please load PCD files first!\n");
   }
 }
 
 void 
-PCDVideoPlayer::writeButtonPressed()
+MHMCVideoAnnotator::writeButtonPressed()
 {
-  PCL_DEBUG ("[PCDVideoPlayer::writeButtonPressed] : (I) : called\n");
+  PCL_DEBUG ("[MHMCVideoAnnotator::writeButtonPressed] : (I) : called\n");
   QString fileName = QFileDialog::getSaveFileName(this, tr("Save File"), "day_person_trial_machine.xml", tr("XML Files (*.xml)"));
 
   std::ofstream outfile;
@@ -270,7 +270,7 @@ PCDVideoPlayer::writeButtonPressed()
 }
 
 void
-PCDVideoPlayer::selectFolderButtonPressed()
+MHMCVideoAnnotator::selectFolderButtonPressed()
 {
   pcd_files_.clear();     // Clear the std::vector
   pcd_paths_.clear();     // Clear the boost filesystem paths
@@ -278,7 +278,7 @@ PCDVideoPlayer::selectFolderButtonPressed()
   dir_ = QFileDialog::getExistingDirectory(this, tr("Open Directory"), "/home", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
   // GIVES ERROR
-  //PCL_DEBUG ("[PCDVideoPlayer::selectFolderButtonPressed] : selected : %s\n", dir_.toAscii().data());
+  //PCL_DEBUG ("[MHMCVideoAnnotator::selectFolderButtonPressed] : selected : %s\n", dir_.toAscii().data());
 
   boost::filesystem::directory_iterator end_itr;
 
@@ -295,7 +295,7 @@ PCDVideoPlayer::selectFolderButtonPressed()
       else
       {
         // Found non pcd file
-        PCL_DEBUG ("[PCDVideoPlayer::selectFolderButtonPressed] : found a different file\n");
+        PCL_DEBUG ("[MHMCVideoAnnotator::selectFolderButtonPressed] : found a different file\n");
       }
       // PCL_DEBUG GIVES ERROR, std::cout not
       //PCL_DEBUG ("String : \t%s\n",itr->path().string());
@@ -314,7 +314,7 @@ PCDVideoPlayer::selectFolderButtonPressed()
     exit(-1);
   }
   nr_of_frames_ = pcd_files_.size();
-  PCL_DEBUG ("[PCDVideoPlayer::selectFolderButtonPressed] : found %d files\n", nr_of_frames_ );
+  PCL_DEBUG ("[MHMCVideoAnnotator::selectFolderButtonPressed] : found %d files\n", nr_of_frames_ );
 
   if(nr_of_frames_ == 0)
   {
@@ -341,14 +341,14 @@ PCDVideoPlayer::selectFolderButtonPressed()
 }
 
 void 
-PCDVideoPlayer::selectFilesButtonPressed()
+MHMCVideoAnnotator::selectFilesButtonPressed()
 {
   pcd_files_.clear();  // Clear the std::vector
   pcd_paths_.clear();     // Clear the boost filesystem paths
 
   QStringList qt_pcd_files = QFileDialog::getOpenFileNames(this, "Select one or more PCD files to open", "/home", "PointClouds (*.pcd)");
   nr_of_frames_ = qt_pcd_files.size();
-  std::cout << "[PCDVideoPlayer::selectFilesButtonPressed] : selected " << nr_of_frames_ << " files" << std::endl;
+  std::cout << "[MHMCVideoAnnotator::selectFilesButtonPressed] : selected " << nr_of_frames_ << " files" << std::endl;
 
   if(nr_of_frames_ == 0)
   {
@@ -377,7 +377,7 @@ PCDVideoPlayer::selectFilesButtonPressed()
 }
 
 void 
-PCDVideoPlayer::timeoutSlot ()
+MHMCVideoAnnotator::timeoutSlot ()
 {
   if(play_mode_)
   {
@@ -432,7 +432,7 @@ PCDVideoPlayer::timeoutSlot ()
 
     if (pcl::io::loadPCDFile<pcl::PointXYZRGBA> (pcd_files_[current_frame_], *cloud_) == -1) //* load the file
     {
-      PCL_ERROR ("[PCDVideoPlayer::timeoutSlot] : Couldn't read file %s\n");
+      PCL_ERROR ("[MHMCVideoAnnotator::timeoutSlot] : Couldn't read file %s\n");
     }
 
     if(!vis_->updatePointCloud(cloud_, "cloud_"))
@@ -446,23 +446,23 @@ PCDVideoPlayer::timeoutSlot ()
 }
 
 void
-PCDVideoPlayer::indexSliderValueChanged(int value)
+MHMCVideoAnnotator::indexSliderValueChanged(int value)
 {
-  PCL_DEBUG ("[PCDVideoPlayer::indexSliderValueChanged] : (I) : value %d\n", value);
+  PCL_DEBUG ("[MHMCVideoAnnotator::indexSliderValueChanged] : (I) : value %d\n", value);
   current_frame_ = value;
   cloud_modified_ = true;
 }
 
 void
-PCDVideoPlayer::motionTypeBoxCurrentIndexChanged(int index)
+MHMCVideoAnnotator::motionTypeBoxCurrentIndexChanged(int index)
 {
-  std::cout << "[PCDVideoPlayer::motionTypeBoxCurrentIndexChanged] : selected index " << index << std::endl;
+  std::cout << "[MHMCVideoAnnotator::motionTypeBoxCurrentIndexChanged] : selected index " << index << std::endl;
 }
 
 void
 print_usage ()
 {
-  PCL_INFO ("PCDVideoPlayer V0.1\n");
+  PCL_INFO ("MHMCVideoAnnotator V0.1\n");
   PCL_INFO ("-------------------\n");
   PCL_INFO ("\tThe slider accepts focus on Tab and provides both a mouse wheel and a keyboard interface. The keyboard interface is the following:\n");
   PCL_INFO ("\t  Left/Right move a horizontal slider by one single step.\n");
@@ -478,7 +478,7 @@ main (int argc, char** argv)
 {
   QApplication app(argc, argv);
 
-  PCDVideoPlayer VideoPlayer;
+  MHMCVideoAnnotator VideoPlayer;
 
   VideoPlayer.show();
 

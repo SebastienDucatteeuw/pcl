@@ -110,7 +110,7 @@ class FrameSemantics
     bool          annotated_;
 };
 
-class PCDVideoPlayer : public QMainWindow
+class MHMCVideoAnnotator : public QMainWindow
 {
   Q_OBJECT
   public:
@@ -118,9 +118,9 @@ class PCDVideoPlayer : public QMainWindow
     typedef Cloud::Ptr CloudPtr;
     typedef Cloud::ConstPtr CloudConstPtr;
 
-    PCDVideoPlayer ();
+    MHMCVideoAnnotator ();
 
-    ~PCDVideoPlayer () {}
+    ~MHMCVideoAnnotator () {}
 
   protected:
     boost::shared_ptr<pcl::visualization::PCLVisualizer>  vis_;
