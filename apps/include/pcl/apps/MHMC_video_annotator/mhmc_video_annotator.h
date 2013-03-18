@@ -34,7 +34,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <ui_pcd_video_player.h>
+#include <ui_mhmc_video_annotator.h>
 
 #include <iostream>
 #include <time.h>

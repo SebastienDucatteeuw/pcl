@@ -163,10 +163,10 @@ if(build)
         target_link_libraries(pcl_manual_registration pcl_common pcl_io pcl_visualization pcl_segmentation pcl_features pcl_surface QVTK ${QT_LIBRARIES})
 
         # Manual registration demo
-        QT4_WRAP_UI(pcd_video_player_ui src/pcd_video_player/pcd_video_player.ui)
-        QT4_WRAP_CPP(pcd_video_player_moc include/pcl/apps/pcd_video_player.h OPTIONS -DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED)
-        PCL_ADD_EXECUTABLE_OPT_BUNDLE(pcl_pcd_video_player ${SUBSYS_NAME} ${pcd_video_player_ui} ${pcd_video_player_moc} src/pcd_video_player/pcd_video_player.cpp)
-        target_link_libraries(pcl_pcd_video_player pcl_common pcl_io pcl_visualization pcl_segmentation pcl_features pcl_surface QVTK ${QT_LIBRARIES})
+        QT4_WRAP_UI(MHMC_video_annotator_ui src/MHMC_video_annotator/mhmc_video_annotator.ui)
+        QT4_WRAP_CPP(MHMC_video_annotator_moc include/pcl/apps/MHMC_video_annotator/mhmc_video_annotator.h OPTIONS -DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED)
+        PCL_ADD_EXECUTABLE_OPT_BUNDLE(pcl_MHMC_video_annotator ${SUBSYS_NAME} ${MHMC_video_annotator_ui} ${MHMC_video_annotator_moc} src/MHMC_video_annotator/mhmc_video_annotator.cpp)
+        target_link_libraries(pcl_MHMC_video_annotator pcl_common pcl_io pcl_visualization pcl_segmentation pcl_features pcl_surface QVTK ${QT_LIBRARIES})
 
         # Database processing (integration) demo
 #        QT4_WRAP_UI(db_proc_ui src/db_proc/db_proc.ui)
