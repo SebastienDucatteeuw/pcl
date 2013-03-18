@@ -40,9 +40,18 @@
 
 //PCL
 #include <pcl/apps/pcd_video_player.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
 
+//STD
 #include <iostream>
+#include <fstream>
+
+//BOOST
 #include <boost/filesystem.hpp>
+#include <boost/foreach.hpp>
+#include <boost/property_tree/xml_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 //QT4
 #include <QApplication>
@@ -65,6 +74,12 @@ using namespace std;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 PCDVideoPlayer::PCDVideoPlayer ()
 {
+  cloud_present_ = false;
+  cloud_modified_ = false;
+  play_mode_ = false;
+  speed_counter_ = 0;
+  speed_value_ = 5;
+
   //Create a timer
   vis_timer_ = new QTimer (this);
   vis_timer_->start (5);//5ms
@@ -80,6 +95,9 @@ PCDVideoPlayer::PCDVideoPlayer ()
   static_motions_ << "Unclassified" << "T_pose" << "Straight_pose";
   free_motions_ << "Unclassified" << "Jumping_jacks" << "Wave_left" << "Wave_right" << "Forbid_left";
   object_motions_ << "Unclassified" << "Water" << "Cucumber" << "Pancake" << "Wipe";
+
+  // Setup the cloud pointer
+  cloud_.reset (new pcl::PointCloud<pcl::PointXYZRGBA>);
 
   // Set up the qvtk window
   vis_.reset (new pcl::visualization::PCLVisualizer ("", false));
@@ -97,6 +115,8 @@ PCDVideoPlayer::PCDVideoPlayer ()
   connect (ui_->stopButton, SIGNAL(clicked()), this, SLOT(stopButtonPressed()));
   connect (ui_->backButton, SIGNAL(clicked()), this, SLOT(backButtonPressed()));
   connect (ui_->nextButton, SIGNAL(clicked()), this, SLOT(nextButtonPressed()));
+  connect (ui_->writeButton, SIGNAL(clicked()), this, SLOT(writeButtonPressed()));
+
   connect (ui_->selectFolderButton, SIGNAL(clicked()), this, SLOT(selectFolderButtonPressed()));
   connect (ui_->selectFilesButton, SIGNAL(clicked()), this, SLOT(selectFilesButtonPressed()));
   
@@ -135,41 +155,121 @@ PCDVideoPlayer::objectRadioButtonPressed()
   ui_->motionTypeBox->addItems(object_motions_);
 }
 
-
 void
 PCDVideoPlayer::playButtonPressed()
 {
-
+  play_mode_ = true;
 }
 
 void 
 PCDVideoPlayer::stopButtonPressed()
 {
-
+  play_mode_= false;
 }
 
 void 
 PCDVideoPlayer::backButtonPressed()
 {
-
+  if(current_frame_ == 0) // Allready in the beginning
+  {
+    PCL_DEBUG ("[PCDVideoPlayer::nextButtonPressed] : reached the end\n");
+    current_frame_ = nr_of_frames_-1; // reset to end
+  }
+  else
+  {
+    current_frame_--;
+    cloud_modified_ = true;
+    ui_->indexSlider->setSliderPosition(current_frame_);        // Update the slider position
+  }
 }
 
 void 
 PCDVideoPlayer::nextButtonPressed()
 {
-
+  if(current_frame_ == (nr_of_frames_-1)) // Reached the end
+  {
+    PCL_DEBUG ("[PCDVideoPlayer::nextButtonPressed] : reached the end\n");
+    current_frame_ = 0; // reset to beginning
+  }
+  else
+  {
+    current_frame_++;
+    cloud_modified_ = true;
+    ui_->indexSlider->setSliderPosition(current_frame_);        // Update the slider position
+  }
 }
 
 void 
 PCDVideoPlayer::saveButtonPressed()
 {
-  PCL_INFO("[PCDVideoPlayer::saveButtonPressed] : (I) : called\n");
-  PCL_INFO("[PCDVideoPlayer::saveButtonPressed] : (I) : Begin Motion %d\n", ui_->beginMotionRadioButton->isChecked());
-  PCL_INFO("[PCDVideoPlayer::saveButtonPressed] : (I) : In Motion %d\n", ui_->inMotionRadioButton->isChecked());
-  PCL_INFO("[PCDVideoPlayer::saveButtonPressed] : (I) : End Motion %d\n", ui_->endMotionRadioButton->isChecked());
+  PCL_DEBUG ("[PCDVideoPlayer::saveButtonPressed] : (I) : called\n");
+
+  if(cloud_present_)
+  {
+    frame_semantics_[current_frame_].motion_type_ = ui_->motionTypeBox->currentText().toStdString();
+    frame_semantics_[current_frame_].motion_type_index_ = ui_->motionTypeBox->currentIndex();
+
+    frame_semantics_[current_frame_].static_motion_ = ui_->staticRadioButton->isChecked();
+    frame_semantics_[current_frame_].free_motion_ = ui_->freeRadioButton->isChecked();
+    frame_semantics_[current_frame_].object_motion_ = ui_->objectRadioButton->isChecked();
+
+    frame_semantics_[current_frame_].begin_motion_ = ui_->beginMotionRadioButton->isChecked();
+    frame_semantics_[current_frame_].in_motion_ = ui_->inMotionRadioButton->isChecked();
+    frame_semantics_[current_frame_].end_motion_ = ui_->endMotionRadioButton->isChecked();
+
+    frame_semantics_[current_frame_].visible_body_parts_ =ui_->bodyPartsBox->value();
+
+    time(&frame_semantics_[current_frame_].last_save_);
+
+    frame_semantics_[current_frame_].annotated_ = true;
+  }
+  else
+  {
+    PCL_ERROR ("[PCDVideoPlayer::saveButtonPressed] : please load PCD files first!\n");
+  }
 }
 
 void 
+PCDVideoPlayer::writeButtonPressed()
+{
+  PCL_DEBUG ("[PCDVideoPlayer::writeButtonPressed] : (I) : called\n");
+  QString fileName = QFileDialog::getSaveFileName(this, tr("Save File"), "day_person_trial_machine.xml", tr("XML Files (*.xml)"));
+
+  std::ofstream outfile;
+
+  outfile.open (fileName.toStdString().c_str());
+
+  boost::property_tree::ptree pt;
+
+  pt.add("version", CURRENT_VERSION);
+  pt.add("nr_of_frames", nr_of_frames_);
+
+  BOOST_FOREACH(FrameSemantics frameS, frame_semantics_)
+  {
+    boost::property_tree::ptree & node = pt.add("frame", "");
+    node.put("filename", frameS.filename_);
+
+    node.put("motion_type", frameS.motion_type_);
+    node.put("motion_type_index", frameS.motion_type_index_);
+
+    node.put("static_motion", frameS.static_motion_);
+    node.put("free_motion", frameS.free_motion_);
+    node.put("object_motion", frameS.object_motion_);
+
+    node.put("begin_motion", frameS.static_motion_);
+    node.put("in_motion", frameS.in_motion_);
+    node.put("end_motion", frameS.end_motion_);
+
+    node.put("visible_body_parts", frameS.visible_body_parts_);
+
+    node.put("time_last_save", frameS.last_save_);
+
+  }
+  write_xml(outfile,pt);
+  outfile.close();
+}
+
+void
 PCDVideoPlayer::selectFolderButtonPressed()
 {
   pcd_files_.clear();     // Clear the std::vector
@@ -177,9 +277,8 @@ PCDVideoPlayer::selectFolderButtonPressed()
 
   dir_ = QFileDialog::getExistingDirectory(this, tr("Open Directory"), "/home", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
-  std::cout << "[PCDVideoPlayer::selectFolderButtonPressed] : selected : " << dir_.toAscii().data() << std::endl;
-
-  current_frame_ = 0;
+  // GIVES ERROR
+  //PCL_DEBUG ("[PCDVideoPlayer::selectFolderButtonPressed] : selected : %s\n", dir_.toAscii().data());
 
   boost::filesystem::directory_iterator end_itr;
 
@@ -196,31 +295,49 @@ PCDVideoPlayer::selectFolderButtonPressed()
       else
       {
         // Found non pcd file
+        PCL_DEBUG ("[PCDVideoPlayer::selectFolderButtonPressed] : found a different file\n");
       }
-//#ifdef VERBOSE
-        std::cout << "String : \t" << itr->path().string() << std::endl;
-        std::cout << "Extension : \t" << itr->path().extension() << std::endl;
-        std::cout << "Filename : \t" << itr->path().filename() << std::endl;
+      // PCL_DEBUG GIVES ERROR, std::cout not
+      //PCL_DEBUG ("String : \t%s\n",itr->path().string());
+      //PCL_DEBUG ("Extension : \ts\n",itr->path().extension());
+      //PCL_DEBUG ("Filename : \ts\n",itr->path().filename());
         //std::cout << "Root_dir" << itr->path().root_directory() << std::endl;
         //std::cout << "Root_path" << itr->path().root_path() << std::endl;
         //std::cout << "Root_name" << itr->path().root_name() << std::endl;
         //std::cout << "rel_path" << itr->path().relative_path() << std::endl;
         //std::cout << "parent_path" << itr->path().parent_path() << std::endl;
-//#endif //VERBOSE
     }
   }
   else
   {
-    PCL_ERROR("RGB path is not a directory\n");
+    PCL_ERROR("Path is not a directory\n");
     exit(-1);
   }
   nr_of_frames_ = pcd_files_.size();
-  std::cout << "[PCDVideoPlayer::selectFolderButtonPressed] : found " << nr_of_frames_ << " files" << std::endl;
+  PCL_DEBUG ("[PCDVideoPlayer::selectFolderButtonPressed] : found %d files\n", nr_of_frames_ );
 
-  // Reset the Slider
-  ui_->indexSlider->setValue(0);                // set cursor back in the beginning
-  ui_->indexSlider->setRange(0,nr_of_frames_-1);  // rescale the slider
+  if(nr_of_frames_ == 0)
+  {
+    PCL_ERROR("Please select valid pcd folder\n");
+    cloud_present_ = false;
+    return;
+  }
+  else
+  {
+    // Reset the Slider
+    ui_->indexSlider->setValue(0);                // set cursor back in the beginning
+    ui_->indexSlider->setRange(0,nr_of_frames_-1);  // rescale the slider
 
+    current_frame_ = 0;
+
+    cloud_present_ = true;
+    cloud_modified_ = true;
+
+    frame_semantics_.resize (nr_of_frames_);
+    // Copy the filenames to the frame semantics file names
+    for(int i = 0; i< nr_of_frames_; i++)
+      frame_semantics_[i].filename_ = pcd_files_[i];
+  }
 }
 
 void 
@@ -233,49 +350,107 @@ PCDVideoPlayer::selectFilesButtonPressed()
   nr_of_frames_ = qt_pcd_files.size();
   std::cout << "[PCDVideoPlayer::selectFilesButtonPressed] : selected " << nr_of_frames_ << " files" << std::endl;
 
-  for(int i = 0; i < qt_pcd_files.size(); i++)
+  if(nr_of_frames_ == 0)
   {
-    pcd_files_.push_back(qt_pcd_files.at(i).toStdString());
+    PCL_ERROR("Please select valid pcd files\n");
+    cloud_present_ = false;
+    return;
   }
+  else
+  {
+    frame_semantics_.resize (nr_of_frames_);
+    for(int i = 0; i < qt_pcd_files.size(); i++)
+    {
+      pcd_files_.push_back(qt_pcd_files.at(i).toStdString());
+      frame_semantics_[i].filename_ = qt_pcd_files.at(i).toStdString();
+    }
 
-  current_frame_ = 0;
+    current_frame_ = 0;
 
-  // Reset the Slider
-  ui_->indexSlider->setValue(0);                // set cursor back in the beginning
-  ui_->indexSlider->setRange(0,nr_of_frames_-1);  // rescale the slider
+    // Reset the Slider
+    ui_->indexSlider->setValue(0);                // set cursor back in the beginning
+    ui_->indexSlider->setRange(0,nr_of_frames_-1);  // rescale the slider
+
+    cloud_present_ = true;
+    cloud_modified_ = true;
+  }
 }
 
 void 
 PCDVideoPlayer::timeoutSlot ()
 {
-  /*
-  if(cloud_src_present_ && cloud_src_modified_)
+  if(play_mode_)
   {
-    if(!vis_src_->updatePointCloud(cloud_src_, "cloud_src_"))
+    if(speed_counter_ == speed_value_)
     {
-      vis_src_->addPointCloud (cloud_src_, "cloud_src_");
-      vis_src_->resetCameraViewpoint("cloud_src_");
+      if(current_frame_ == (nr_of_frames_-1)) // Reached the end
+      {
+        current_frame_ = 0; // reset to beginning
+      }
+      else
+      {
+        current_frame_++;
+        cloud_modified_ = true;
+        ui_->indexSlider->setSliderPosition(current_frame_);        // Update the slider position
+      }
     }
-    cloud_src_modified_ = false;
+    else
+    {
+      speed_counter_++;
+    }
   }
-  if(cloud_dst_present_ && cloud_dst_modified_)
+
+  if(cloud_present_ && cloud_modified_)
   {
-    if(!vis_dst_->updatePointCloud(cloud_dst_, "cloud_dst_"))
+    // Set buttons etc back to saved values if they exist
+    if (frame_semantics_[current_frame_].annotated_) // Load from std::vector
     {
-      vis_dst_->addPointCloud (cloud_dst_, "cloud_dst_");
-      vis_dst_->resetCameraViewpoint("cloud_dst_");
+      ui_->motionTypeBox->setCurrentIndex(frame_semantics_[current_frame_].motion_type_index_);
+      ui_->bodyPartsBox->setValue(frame_semantics_[current_frame_].visible_body_parts_);
+
+      ui_->staticRadioButton->setChecked(frame_semantics_[current_frame_].static_motion_);
+      ui_->freeRadioButton->setChecked(frame_semantics_[current_frame_].free_motion_);
+      ui_->objectRadioButton->setChecked(frame_semantics_[current_frame_].object_motion_);
+
+      ui_->beginMotionRadioButton->setChecked(frame_semantics_[current_frame_].begin_motion_);
+      ui_->inMotionRadioButton->setChecked(frame_semantics_[current_frame_].in_motion_);
+      ui_->endMotionRadioButton->setChecked(frame_semantics_[current_frame_].end_motion_);
     }
-    cloud_dst_modified_ = false;
+    else  // Reset
+    {
+      ui_->motionTypeBox->setCurrentIndex(0);
+      ui_->bodyPartsBox->setValue(0);
+
+      ui_->staticRadioButton->setChecked(false);
+      ui_->freeRadioButton->setChecked(false);
+      ui_->objectRadioButton->setChecked(false);
+
+      ui_->beginMotionRadioButton->setChecked(false);
+      ui_->inMotionRadioButton->setChecked(false);
+      ui_->endMotionRadioButton->setChecked(false);
+    }
+
+    if (pcl::io::loadPCDFile<pcl::PointXYZRGBA> (pcd_files_[current_frame_], *cloud_) == -1) //* load the file
+    {
+      PCL_ERROR ("[PCDVideoPlayer::timeoutSlot] : Couldn't read file %s\n");
+    }
+
+    if(!vis_->updatePointCloud(cloud_, "cloud_"))
+    {
+      vis_->addPointCloud (cloud_, "cloud_");
+      vis_->resetCameraViewpoint("cloud_");
+    }
+    cloud_modified_ = false;
   }
-  ui_->qvtk_widget_src->update();
-  ui_->qvtk_widget_dst->update();
-  */
+  ui_->qvtkWidget->update();
 }
 
 void
 PCDVideoPlayer::indexSliderValueChanged(int value)
 {
-  PCL_INFO("[PCDVideoPlayer::indexSliderValueChanged] : (I) : value %d\n", value);
+  PCL_DEBUG ("[PCDVideoPlayer::indexSliderValueChanged] : (I) : value %d\n", value);
+  current_frame_ = value;
+  cloud_modified_ = true;
 }
 
 void

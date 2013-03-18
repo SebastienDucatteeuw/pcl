@@ -37,6 +37,7 @@
 #include <ui_pcd_video_player.h>
 
 #include <iostream>
+#include <time.h>
 
 // QT4
 #include <QMainWindow>
@@ -69,6 +70,8 @@
 
 typedef pcl::PointXYZRGBA PointT;
 
+#define CURRENT_VERSION 0.2
+
 // Useful macros
 #define FPS_CALC(_WHAT_) \
 do \
@@ -90,7 +93,22 @@ namespace Ui
   class MainWindow;
 }
 
-
+class FrameSemantics
+{
+  public:
+    std::string   filename_;
+    std::string   motion_type_;
+    int           motion_type_index_;
+    bool          static_motion_;
+    bool          free_motion_;
+    bool          object_motion_;
+    bool          begin_motion_;
+    bool          in_motion_;
+    bool          end_motion_;
+    int           visible_body_parts_;
+    time_t        last_save_;
+    bool          annotated_;
+};
 
 class PCDVideoPlayer : public QMainWindow
 {
@@ -105,7 +123,8 @@ class PCDVideoPlayer : public QMainWindow
     ~PCDVideoPlayer () {}
 
   protected:
-    boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
+    boost::shared_ptr<pcl::visualization::PCLVisualizer>  vis_;
+    pcl::PointCloud<pcl::PointXYZRGBA>::Ptr               cloud_;
 
     QMutex          mtx_;
     QMutex          vis_mtx_;
@@ -114,8 +133,10 @@ class PCDVideoPlayer : public QMainWindow
 
     QString         dir_;
     
-    std::vector<std::string>              pcd_files_;
+    std::vector<std::string>              pcd_files_;           // TODO: this is redundant and is kept entirely in frame_semantics_
     std::vector<boost::filesystem::path>  pcd_paths_;
+
+    std::vector<FrameSemantics>           frame_semantics_;
 
     //QStringList     pcd_files_;
 
@@ -123,8 +144,15 @@ class PCDVideoPlayer : public QMainWindow
     QStringList     free_motions_;
     QStringList     object_motions_;
 
-    unsigned int    current_frame_;
-    unsigned int    nr_of_frames_;
+    unsigned int    current_frame_;         // The current displayed frame
+    unsigned int    nr_of_frames_;          // Store the number of loaded frames
+
+    bool            cloud_present_;         // Indicate that pointclouds were loaded
+    bool            cloud_modified_;        // Indicate that the timeoutSlot needs to reload the pointcloud
+
+    bool            play_mode_;             // Indicate that files should play continiously
+    unsigned int    speed_counter_;         // In play mode only update if speed_counter_ == speed_value
+    unsigned int    speed_value_;           // Fixes the speed in steps of 5ms, default 5, gives 5+1 * 5ms = 30ms = 33,3 Hz playback speed
 
   public slots:
     void
@@ -140,6 +168,8 @@ class PCDVideoPlayer : public QMainWindow
     stopButtonPressed();
     void 
     saveButtonPressed();
+    void
+    writeButtonPressed();
     void
     backButtonPressed();
     void 
