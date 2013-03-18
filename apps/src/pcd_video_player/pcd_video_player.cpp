@@ -89,7 +89,7 @@ PCDVideoPlayer::PCDVideoPlayer ()
   ui_ = new Ui::MainWindow;
   ui_->setupUi (this);
   
-  this->setWindowTitle ("PCL PCD Video Player");
+  this->setWindowTitle ("MHMC Video Annotator");
 
   // Create the list of motions
   static_motions_ << "Unclassified" << "T_pose" << "Straight_pose";
