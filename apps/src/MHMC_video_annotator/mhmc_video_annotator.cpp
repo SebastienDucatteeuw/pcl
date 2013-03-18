@@ -171,7 +171,10 @@ MHMCVideoAnnotator::objectRadioButtonPressed()
 void
 MHMCVideoAnnotator::playButtonPressed()
 {
-  play_mode_ = true;
+  if(cloud_present_)
+    play_mode_ = true;
+  else
+    PCL_ERROR ("[MHMCVideoAnnotator::playButtonPressed] : Please load PCD files first!\n");
 }
 
 void 
@@ -403,9 +406,9 @@ MHMCVideoAnnotator::timeoutSlot ()
   {
     if(speed_counter_ == speed_value_)
     {
-      if(current_frame_ == (nr_of_frames_-1)) // Reached the end
+      if(current_frame_ == (nr_of_frames_-1))                       // Reached the end
       {
-        current_frame_ = 0; // reset to beginning
+        current_frame_ = 0;                                         // reset to beginning
       }
       else
       {
@@ -413,6 +416,7 @@ MHMCVideoAnnotator::timeoutSlot ()
         cloud_modified_ = true;
         ui_->indexSlider->setSliderPosition(current_frame_);        // Update the slider position
       }
+      speed_counter_ = 0;                                           // Reset the speed counter
     }
     else
     {
@@ -423,7 +427,7 @@ MHMCVideoAnnotator::timeoutSlot ()
   if(cloud_present_ && cloud_modified_)
   {
     // Set buttons etc back to saved values if they exist
-    if (frame_semantics_[current_frame_].annotated_) // Load from std::vector
+    if (frame_semantics_[current_frame_].annotated_)                // Load from std::vector
     {
       ui_->motionTypeBox->setCurrentIndex(frame_semantics_[current_frame_].motion_type_index_);
       ui_->bodyPartsBox->setValue(frame_semantics_[current_frame_].visible_body_parts_);
