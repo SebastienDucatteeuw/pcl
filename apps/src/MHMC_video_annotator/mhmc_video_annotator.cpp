@@ -130,6 +130,8 @@ MHMCVideoAnnotator::MHMCVideoAnnotator ()
   connect (ui_->nextButton, SIGNAL(clicked()), this, SLOT(nextButtonPressed()));
   connect (ui_->writeButton, SIGNAL(clicked()), this, SLOT(writeButtonPressed()));
 
+  connect (ui_->loadXMLButton, SIGNAL(clicked()), this, SLOT(loadXMLButtonPressed()));
+
   connect (ui_->selectFolderButton, SIGNAL(clicked()), this, SLOT(selectFolderButtonPressed()));
   connect (ui_->selectFilesButton, SIGNAL(clicked()), this, SLOT(selectFilesButtonPressed()));
   
@@ -290,6 +292,14 @@ MHMCVideoAnnotator::writeButtonPressed()
   }
   write_xml(outfile,pt);
   outfile.close();
+}
+
+void
+MHMCVideoAnnotator::loadXMLButtonPressed()
+{
+  PCL_DEBUG ("[MHMCVideoAnnotator::loadXMLButtonPressed] : (I) : called\n");
+  QString xml_file = QFileDialog::getOpenFileName(this, "Select one XML semantics file", "/home", "XML (*.xml)");
+
 }
 
 void

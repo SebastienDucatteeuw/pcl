@@ -171,6 +171,8 @@ class MHMCVideoAnnotator : public QMainWindow
     void
     writeButtonPressed();
     void
+    loadXMLButtonPressed();
+    void
     backButtonPressed();
     void 
     nextButtonPressed();
