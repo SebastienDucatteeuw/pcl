@@ -212,6 +212,9 @@ MHMCVideoAnnotator::nextButtonPressed()
   }
 }
 
+/*
+ * \brief This methods saves the semantics of the current frame, nothing is stored to disk!
+ */
 void 
 MHMCVideoAnnotator::saveButtonPressed()
 {
@@ -242,6 +245,9 @@ MHMCVideoAnnotator::saveButtonPressed()
   }
 }
 
+/*
+ * \brief This method saves the semantics off all the selected frames to an XML file
+ */
 void 
 MHMCVideoAnnotator::writeButtonPressed()
 {
@@ -277,6 +283,7 @@ MHMCVideoAnnotator::writeButtonPressed()
 
     node.put("time_last_save", frameS.last_save_);
 
+    node.put("annotated", frameS.annotated_);
   }
   write_xml(outfile,pt);
   outfile.close();
@@ -484,6 +491,7 @@ print_usage ()
   PCL_INFO ("\t  PageDown moves down one page.\n");
   PCL_INFO ("\t  Home moves to the start (mininum).\n");
   PCL_INFO ("\t  End moves to the end (maximum).\n");
+  PCL_INFO ("\tThe Write button saves the semantics off all the selected frames to an XML file.\n");
 }
 
 int
