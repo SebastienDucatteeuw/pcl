@@ -663,6 +663,7 @@ public:
       
     while (!viewer_.wasStopped ())
       boost::this_thread::sleep(boost::posix_time::seconds(1));
+
     interface->stop ();
   }
   
@@ -695,17 +696,13 @@ public:
 void
 usage (char** argv)
 {
-  std::cout << "usage: " << argv[0] << " <device_id> [-C] [-g]\n\n";
-  std::cout << "  -C:  initialize the pointcloud to track without plane segmentation"
-            << std::endl;
-  std::cout << "  -D: visualizing with non-downsampled pointclouds."
-            << std::endl;
-  std::cout << "  -P: not visualizing particle cloud."
-            << std::endl;
-  std::cout << "  -fixed: use the fixed number of the particles."
-            << std::endl;
-  std::cout << "  -d <value>: specify the grid size of downsampling (defaults to 0.01)."
-            << std::endl;
+  PCL_INFO("Usage: %s <device_id> [-C] [-g]\n\n", argv[0]);
+  PCL_INFO("For first device, specify <device_id> as \"#1\"\n");
+  PCL_INFO("\t-C : \t initialize the pointcloud to track without plane segmentation\n");
+  PCL_INFO("\t-D : \t visualizing with non-downsampled pointclouds.\n");
+  PCL_INFO("\t-P : \t not visualizing particle cloud.\n");
+  PCL_INFO("\t-fixed : \t use the fixed number of the particles.\n");
+  PCL_INFO("\t-d <value> : \t specify the grid size of downsampling (defaults to 0.01).\n");
 }
 
 int
@@ -727,6 +724,7 @@ main (int argc, char** argv)
   if (pcl::console::find_argument (argc, argv, "-fixed") > 0)
     use_fixed = true;
   pcl::console::parse_argument (argc, argv, "-d", downsampling_grid_size);
+
   if (argc < 2)
   {
     usage (argv);
