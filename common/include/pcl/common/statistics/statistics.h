@@ -54,9 +54,11 @@ namespace pcl {
   template <typename PointT>
   class HistogramStatistics : public pcl::PCLBase <PointT> {
     public:
-    typedef float (PointT::*AttributePtr);
+      typedef float (PointT::*AttributePtr);
+      typedef int (*fptr_)(PointT);
+      fptr_ function_ptr_;                        // This is the method the user needs to implement
 
-      Histogram_ (float min, float max, unsigned int dim, bool cumulative = false, bool normalize = false)
+      HistogramStatistics (float min, float max, unsigned int dim, bool cumulative = false, bool normalize = false)
         :min_ (min)
         ,max_ (max)
         ,dim_ (dim)
@@ -69,9 +71,9 @@ namespace pcl {
       {
       }
 
-      inline void setFunctionPointer (void *fptr)
+      inline void setFunctionPointer (fptr_ function)
       {
-        ftpr_ = ftpr;
+        function_ptr_ = function;
       }
 
       inline bool getNormalize () const
@@ -129,14 +131,18 @@ namespace pcl {
 
         bins_.resize (dim_);      // Scale the bins_ vector to the actual number of bins
 
-        entries_ = cloud.points.size();
+        entries_ = input_cloud.points.size();
         for (unsigned int i = 0; i < entries_; i++)
         {
-          unsigned int bin = ftpr(cloud.points[i]);
+          unsigned int bin = ftpr(input_cloud.points[i]);
           if( bin > dim_-1)
-            PCL_ERROR ("[HistogramStatistics::compute] : ftpr returned incorrect bin index\n");
+          {
+            //PCL_INFO ("[HistogramStatistics::compute] : ftpr returned incorrect bin index\n");
+          }
           else
+          {
             bins_[bin]++;
+          }
         }
         if (normalize_)
         {
@@ -191,8 +197,6 @@ namespace pcl {
 
       unsigned int dim_;              // Indicates the number of bins
       std::vector <float> bins_;      // Holds the actual bins
-
-      int (*fptr_)(PointT);            // This is the method the user needs to implement
 
       AttributePtr attr_;
   };
