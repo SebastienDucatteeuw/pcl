@@ -125,7 +125,7 @@ namespace pcl {
         bins_.clear ();
       }
 
-      void compute (pcl::PointCloud<PointT> input_cloud, std::vector <float> &return_values)
+      void compute (pcl::PointCloud<PointT> &input_cloud, std::vector <float> &return_values)
       {
         initCompute ();
 
@@ -134,10 +134,44 @@ namespace pcl {
         entries_ = input_cloud.points.size();
         for (unsigned int i = 0; i < entries_; i++)
         {
-          unsigned int bin = ftpr(input_cloud.points[i]);
+          unsigned int bin = function_ptr_ (input_cloud.points[i]);
           if( bin > dim_-1)
           {
-            //PCL_INFO ("[HistogramStatistics::compute] : ftpr returned incorrect bin index\n");
+            //PCL_INFO ("[HistogramStatistics::compute] : function_ptr_ returned incorrect bin index\n");
+          }
+          else
+          {
+            bins_[bin]++;
+          }
+        }
+        if (normalize_)
+        {
+          normalize ();
+        }
+        if (cumulative_)
+        {
+          cumulate ();
+        }
+
+        deinitCompute ();
+
+        return_values = bins_;
+        bins_.clear ();
+      }
+
+      void computeHue (pcl::PointCloud<PointT> &input_cloud, std::vector <float> &return_values)
+      {
+        initCompute ();
+
+        bins_.resize (dim_);      // Scale the bins_ vector to the actual number of bins
+
+        entries_ = input_cloud.points.size();
+        for (unsigned int i = 0; i < entries_; i++)
+        {
+          unsigned int bin = input_cloud.points[i].h;
+          if( bin > dim_-1)
+          {
+            //PCL_INFO ("[HistogramStatistics::compute] : function_ptr_ returned incorrect bin index\n");
           }
           else
           {
