@@ -1,0 +1,120 @@
+#ifndef PCL_TRACKING_IMPL_HISTOGRAM_COHERENCE_H_
+#define PCL_TRACKING_IMPL_HISTOGRAM_COHERENCE_H_
+
+#include <pcl/common/statistics/statistics.h>
+#include <pcl/tracking/histogram_coherence.h>
+
+namespace pcl
+{
+  namespace tracking
+  {
+    double
+    ChiSquaredDistance (std::vector <float> &hist1, std::vector <float> &hist2)
+    {
+      if (hist1.size() != hist2.size())
+      {
+        PCL_INFO ("[HistogramStatistics::ChiSquaredDistance] : both histograms do not have the same number of bins\n");
+        return 0;
+      }
+      else
+      {
+        double d = 0;
+        int M = 361; int N = 361;
+        int counter = 0;
+        for (int i = 0; i <= 360; i++)
+        {
+          if((hist1[i]+hist2[i]) != 0)
+          {
+            /*
+            1/(MN) SUM_i[((Mni - Nmi)^2)/(mi+ni)].
+            M and N are the total number of entries in each histogram, mi is the number of entries in bin i of histogram M and ni is the number of entries in bin i of histogram N.
+            */
+            d = d + std::pow(M*hist1[i]-N*hist2[i],2)/(hist1[i]+hist2[i]);
+            counter++;
+          }
+        }
+        return d/(M*N);
+      }
+    }
+
+    template <typename PointInT> double
+    histogramCoherence<PointInT>::computeCoherence (PointInT &source, PointInT &target)
+    {
+      pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_cluster_source (new pcl::PointCloud<pcl::PointXYZRGBA>);
+      pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_cluster_target (new pcl::PointCloud<pcl::PointXYZRGBA>);
+
+      int source_cluster_x = source.x;     // x center of the source cluster
+      int source_cluster_y = source.y;     // y center of the source cluster
+      int target_cluster_x = target.x;     // x center of the target cluster
+      int target_cluster_y = target.y;     // y center of the target cluster
+
+      // With cloud_source as reference TODO
+      if (!((cluster_width_ - 1)/2 <= source_cluster_x <= cloud_source->width - (cluster_width_ - 1)/2))
+      {
+        PCL_INFO ("invalid center x-coordinate cluster\n");
+      }
+
+      if (!((cluster_height_ - 1)/2 <= source_cluster_y <= cloud_source->height - (cluster_height_ - 1)/2))
+      {
+        PCL_INFO ("invalid center y-coordinate cluster\n");
+      }
+
+      // WITH CLOUD = TARGET CLOUD TODO
+      if (!((cluster_width_ - 1)/2 <= target_cluster_x <= cloud_target->width - (cluster_width_ - 1)/2))
+      {
+        PCL_INFO ("invalid center x-coordinate cluster\n");
+      }
+
+      if (!((cluster_height_ - 1)/2 <= target_cluster_y <= cloud_target->height - (cluster_height_ - 1)/2))
+      {
+        PCL_INFO ("invalid center y-coordinate cluster\n");
+      }
+
+      // Set border size
+      int y_border = (cluster_height_ - 1)/2;
+      int x_border = (cluster_width_ - 1)/2;
+
+      // Make source cluster
+      cloud_cluster_source->width  = cluster_width_;
+      cloud_cluster_source->height = cluster_height_;
+      cloud_cluster_source->points.resize (cluster_width_ * cluster_height_);
+
+      int i = 0;
+      for (int row = cluster_y - y_border; row <= cluster_y + y_border; row++)
+      {
+        for (int column = cluster_x - x_border; column <= cluster_x + x_border; column++)
+        {
+          cloud_cluster_source->points[i] = cloud_source->points[column + row*cloud->width];
+          i++;
+        }
+      }
+
+      // Make target cluster
+      cloud_cluster_target->width  = cluster_width_;
+      cloud_cluster_target->height = cluster_height_;
+      cloud_cluster_target->points.resize (cluster_width_ * cluster_height_);
+
+      int i = 0;
+      for (int row = cluster_y - y_border; row <= cluster_y + y_border; row++)
+      {
+        for (int column = cluster_x - x_border; column <= cluster_x + x_border; column++)
+        {
+          cloud_cluster_target->points[i] = cloud_target->points[column + row*cloud->width];
+          i++;
+        }
+      }
+
+      // Calculate histogram distance
+      std::vector <float> source_hist(361);
+      std::vecotr <float> target_hist(361);
+      PointCloudXYZRGBAtoXYZHSV (*cloud_source, *cloud_source_hsv);
+      PointCloudXYZRGBAtoXYZHSV (*cloud_target, *cloud_target_hsv);
+
+      pcl::HistogramStatistics <pcl::PointXYZHSV> obj (0, 360, 361, false, true);
+      obj.computeHue (*cloud_source_hsv, source_hist);
+      obj.computeHue (*cloud_target_hsv, target_hist)
+
+      return ChiSquaredDistance(source_hist, target_hist);
+    }
+  }
+}
