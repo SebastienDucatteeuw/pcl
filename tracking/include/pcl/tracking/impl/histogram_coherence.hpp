@@ -133,12 +133,12 @@ namespace pcl
       // Calculate histogram distance
       std::vector <float> source_hist(361);
       std::vecotr <float> target_hist(361);
-      PointCloudXYZRGBAtoXYZHSV (*cloud_source, *cloud_source_hsv);
-      PointCloudXYZRGBAtoXYZHSV (*cloud_target, *cloud_target_hsv);
+      PointCloudXYZRGBAtoXYZHSV (*cloud_cluster_source, *cloud_cluster_source_hsv);
+      PointCloudXYZRGBAtoXYZHSV (*cloud_cluster_target, *cloud_cluster_target_hsv);
 
       pcl::HistogramStatistics <pcl::PointXYZHSV> obj (0, 360, 361, false, true);
-      obj.computeHue (*cloud_source_hsv, source_hist);
-      obj.computeHue (*cloud_target_hsv, target_hist)
+      obj.computeHue (*cloud_cluster_source_hsv, source_hist);
+      obj.computeHue (*cloud_cluster_target_hsv, target_hist)
 
       // TODO Case structuur maken die naargelang de gevraagde methode de afstand berekend
       return BhattacharyyaDistance(source_hist, target_hist);
