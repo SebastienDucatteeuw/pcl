@@ -8,10 +8,36 @@ namespace pcl
 {
   namespace tracking
   {
+
+    double
+    BhattacharyyaDistance (std::vector <float> &hist1, std::vector <float> &hist2) // Both histograms must be normalised
+    {
+      if (hist1.size () != hist2.size ())
+      {
+        PCL_INFO ("[HistogramStatistics::BhattacharyyaDistance] : both histograms do not have the same number of bins\n");
+        return 0;
+      }
+      else
+      {
+        int bins = hist1.size ();
+        // Calc the Bhattacharyya coef:
+        bcoeff = 0;
+        for (int i = 0; i < bins; i++)
+        {
+          bcoeff = bcoeff + std::sqrt(hist1[i] * hist2[i]);
+        }
+
+        // Calc the distance between the two distributions
+        bdist = std::sqrt(1 - bcoeff);
+
+        return bdist;
+      }
+    }
+
     double
     ChiSquaredDistance (std::vector <float> &hist1, std::vector <float> &hist2)
     {
-      if (hist1.size() != hist2.size())
+      if (hist1.size () != hist2.size ())
       {
         PCL_INFO ("[HistogramStatistics::ChiSquaredDistance] : both histograms do not have the same number of bins\n");
         return 0;
@@ -114,7 +140,8 @@ namespace pcl
       obj.computeHue (*cloud_source_hsv, source_hist);
       obj.computeHue (*cloud_target_hsv, target_hist)
 
-      return ChiSquaredDistance(source_hist, target_hist);
+      // TODO Case structuur maken die naargelang de gevraagde methode de afstand berekend
+      return BhattacharyyaDistance(source_hist, target_hist);
     }
   }
 }
