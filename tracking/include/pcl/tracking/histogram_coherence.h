@@ -11,7 +11,7 @@ namespace pcl
       * \ingroup tracking
       */
     template <typename PointInT>
-    class histogramCoherence
+    class histogramCoherence: public PointCoherence<PointInT>
     {
       public:
         histogramCoherence ()
