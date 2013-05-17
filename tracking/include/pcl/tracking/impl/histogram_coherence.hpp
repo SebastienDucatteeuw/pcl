@@ -3,6 +3,7 @@
 
 #include <pcl/common/statistics/statistics.h>
 #include <pcl/tracking/histogram_coherence.h>
+#include <Eigen/Dense>
 
 namespace pcl
 {
@@ -26,7 +27,6 @@ namespace pcl
         {
           bcoeff = bcoeff + std::sqrt(hist1[i] * hist2[i]);
         }
-
         // Calc the distance between the two distributions
         bdist = std::sqrt(1 - bcoeff);
 
@@ -63,11 +63,43 @@ namespace pcl
       }
     }
 
+    Eigen::MatrixXf
+    cloud2uvmatrix (pcl::PointCloud<pcl::PointXYZRGBA>& cloud)
+    {
+      static const float cx = 320-.5;
+      static const float cy = 240-.5;
+      static const float f  = 525;
+
+      Eigen::VectorXf u, v, r, g, b, a;
+
+      for (int i = 0; i < cloud->points.size (); i++)
+      {
+        u(i,0) = f*(cloud->points[i].x/cloud->points[i].z) + cx;
+        v(i,1) = f*(cloud->points[i].y/cloud->points[i].z) + cy;
+        r(i,2) = cloud->points[i].r
+        g(i,3) = cloud->points[i].g
+        b(i,4) = cloud->points[i].b
+        a(i,5) = cloud->points[i].a
+      }
+
+      Eigen::MatrixXi uvrgba(u.rows(),6);
+      uvrgba.col(0) = u.cast<int>();
+      uvrgba.col(1) = v.cast<int>();
+      uvrgba.col(2) = r.cast<int>();
+      uvrgba.col(3) = g.cast<int>();
+      uvrgba.col(4) = b.cast<int>();
+      uvrgba.col(5) = a.cast<int>();
+
+      return uvrgba;
+    }
+
     template <typename PointInT> double
     histogramCoherence<PointInT>::computeCoherence (PointInT &source, PointInT &target)
     {
       pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_cluster_source (new pcl::PointCloud<pcl::PointXYZRGBA>);
       pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_cluster_target (new pcl::PointCloud<pcl::PointXYZRGBA>);
+
+      Eigen::MatrixXi source_cluster_uv = xyz2uv (source.xyz);
 
       int source_cluster_x = source.x;     // x center of the source cluster
       int source_cluster_y = source.y;     // y center of the source cluster
