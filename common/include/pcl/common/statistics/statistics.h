@@ -168,14 +168,17 @@ namespace pcl {
         entries_ = input_cloud.points.size();
         for (unsigned int i = 0; i < entries_; i++)
         {
-          unsigned int bin = input_cloud.points[i].h;
-          if( bin > dim_-1)
+          if (input_cloud.points[i].s > 0.1 && input_cloud.points[i].v > 0.2) // Hue only reliable when both the saturation and the value are not too small
           {
-            //PCL_INFO ("[HistogramStatistics::compute] : function_ptr_ returned incorrect bin index\n");
-          }
-          else
-          {
-            bins_[bin]++;
+            unsigned int bin = input_cloud.points[i].h;
+            if (bin > dim_-1)
+            {
+              //PCL_INFO ("[HistogramStatistics::compute] : function_ptr_ returned incorrect bin index\n");
+            }
+            else
+            {
+              bins_[bin]++;
+            }
           }
         }
         if (normalize_)
