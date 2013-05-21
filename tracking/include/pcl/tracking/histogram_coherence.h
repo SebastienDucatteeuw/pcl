@@ -24,7 +24,10 @@ namespace pcl
         setClusterWidth (int cluster_width) { cluster_width_  = cluster_width; }
 
         inline void
-        setClusterHeight (int cluster_height) { cluster_hight_ = cluster_height; }
+        setClusterHeight (int cluster_height) { cluster_height_ = cluster_height; }
+
+        int cluster_width_;
+        int cluster_height_;
 
       protected:
         double
