@@ -129,8 +129,5 @@ namespace pcl
   }
 }
 
-
 #include <pcl/tracking/impl/coherence.hpp>
-
-
 #endif
