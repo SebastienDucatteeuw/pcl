@@ -271,6 +271,52 @@ pcl::tracking::ParticleFilterTracker<PointInT, StateT>::weight ()
   normalizeWeight ();
 }
 
+//Test----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+template <typename PointInT, typename StateT> void
+pcl::tracking::ParticleFilterTracker<PointInT, StateT>::weight_histogram ()
+{
+  if (!use_normal_)
+  {
+    for (size_t i = 0; i < particles_->points.size (); i++)
+    {
+      computeTransformedPointCloudWithoutNormal (particles_->points[i], *transed_reference_vector_[i]);
+    }
+    
+    PointCloudInPtr coherence_input (new PointCloudIn);
+    cropInputPointCloud (input_, *coherence_input);
+    
+    coherence_->setTargetCloud (coherence_input);
+    coherence_->initCompute ();
+    for (size_t i = 0; i < particles_->points.size (); i++)
+    {
+      IndicesPtr indices;
+      coherence_->compute (transed_reference_vector_[i], indices, particles_->points[i].weight);
+    }
+  }
+  else
+  {
+    for (size_t i = 0; i < particles_->points.size (); i++)
+    {
+      IndicesPtr indices (new std::vector<int>);
+      computeTransformedPointCloudWithNormal (particles_->points[i], *indices, *transed_reference_vector_[i]);
+    }
+    
+    PointCloudInPtr coherence_input (new PointCloudIn);
+    cropInputPointCloud (input_, *coherence_input);
+    
+    coherence_->setTargetCloud (coherence_input);
+    coherence_->initCompute ();
+    for (size_t i = 0; i < particles_->points.size (); i++)
+    {
+      IndicesPtr indices (new std::vector<int>);
+      coherence_->compute (transed_reference_vector_[i], indices, particles_->points[i].weight);
+    }
+  }
+  
+  normalizeWeight ();
+}
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 template <typename PointInT, typename StateT> void
 pcl::tracking::ParticleFilterTracker<PointInT, StateT>::computeTransformedPointCloud
 (const StateT& hypothesis, std::vector<int>& indices, PointCloudIn &cloud)
