@@ -84,9 +84,9 @@ namespace pcl
         u = (int) f*(cloud->points[i].x/cloud->points[i].z) + cx;
         v = (int) f*(cloud->points[i].y/cloud->points[i].z) + cy;
 
-        if (cloud->points[i].z < uvmatrix[u][v][1] || uvmatrix[u][v][0] == 0) // save rgb value to points with (smaller z-values or new value) projected on the same uv
+        if (cloud->points[i].z < uvmatrix[u][v][1] || uvmatrix[u][v][0] == 0) // save rgba value to points with (smaller z-values or new value) projected on the same uv
         {
-          uvmatrix[u][v][0] = cloud->points[i].rgb
+          uvmatrix[u][v][0] = cloud->points[i].rgba
           uvmatrix[u][v][1] = cloud->points[i].z
         }
       }
@@ -94,8 +94,13 @@ namespace pcl
     }
 
     template <typename PointInT> double
-    histogramCoherence<PointInT>::computeCoherence (PointInT &source, PointInT &target)
+    histogramCoherence<PointInT>::computeCoherence (PointInT &target)
     {
+
+/* TODO
+- source cluster should be a histogram vector, changing/weighted over time according to the confidence about the colormodel (could be a class variable that can be initialised (only calculate color model once and adapt if necessary) or reset?)
+- target cluster should be the target_input_ cloud from the coherence_ obj.
+*/
       pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_cluster_source (new pcl::PointCloud<pcl::PointXYZRGBA>);
       pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_cluster_target (new pcl::PointCloud<pcl::PointXYZRGBA>);
 
@@ -144,7 +149,7 @@ namespace pcl
       {
         for (int column = cluster_x - u_border; column <= cluster_x + u_border; column++)
         {
-          cloud_cluster_source->points[i].rgb = source_uvmatrix[row][column][0];
+          cloud_cluster_source->points[i].rgba = source_uvmatrix[row][column][0];
           i++;
         }
       }
@@ -159,7 +164,7 @@ namespace pcl
       {
         for (int column = cluster_x - u_border; column <= cluster_x + u_border; column++)
         {
-          cloud_cluster_target->points[i].rgb = target_uvmatrix[row][column][0];
+          cloud_cluster_target->points[i].rgba = target_uvmatrix[row][column][0];
           i++;
         }
       }
@@ -174,7 +179,7 @@ namespace pcl
       obj.computeHue (*cloud_cluster_source_hsv, source_hist);
       obj.computeHue (*cloud_cluster_target_hsv, target_hist)
 
-      // TODO Case structuur maken die naargelang de gevraagde methode de afstand berekend
+      // TODO Use case structure to select the desired method to calculate the likelihood
       return BhattacharyyaDistance(source_hist, target_hist);
     }
   }

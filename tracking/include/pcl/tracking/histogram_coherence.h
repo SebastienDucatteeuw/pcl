@@ -31,7 +31,7 @@ namespace pcl
 
       protected:
         double
-        computeCoherence (PointInT &source, PointInT &target);
+        computeCoherence (PointInT &target);
     };
   }
 }

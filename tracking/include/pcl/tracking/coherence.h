@@ -19,11 +19,11 @@ namespace pcl
     public:
       typedef boost::shared_ptr< PointCoherence<PointInT> > Ptr;
       typedef boost::shared_ptr< const PointCoherence<PointInT> > ConstPtr;
-      
+
     public:
       /** \brief empty constructor */
       PointCoherence () : coherence_name_ () {}
-      
+
       /** \brief empty distructor */
       virtual ~PointCoherence () {}
 
@@ -43,7 +43,7 @@ namespace pcl
         * \param[in] source instance of source point.
         * \param[in] target instance of target point.
         */
-      virtual double 
+      virtual double
       computeCoherence (PointInT &source, PointInT &target) = 0;
 
       /** \brief Get a string representation of the name of this class. */
@@ -66,7 +66,7 @@ namespace pcl
       typedef pcl::PointCloud<PointInT> PointCloudIn;
       typedef typename PointCloudIn::Ptr PointCloudInPtr;
       typedef typename PointCloudIn::ConstPtr PointCloudInConstPtr;
-      
+
       typedef typename PointCoherence<PointInT>::Ptr PointCoherencePtr;
       /** \brief Constructor. */
       PointCloudCoherence () : coherence_name_ (), target_input_ (), point_coherences_ () {}
@@ -91,7 +91,7 @@ namespace pcl
 
       /** \brief This method should get called before starting the actual computation. */
       virtual bool initCompute ();
-      
+
       /** \brief add a PointCoherence to the PointCloudCoherence.
         * \param coherence a pointer to PointCoherence.
         */
@@ -103,19 +103,22 @@ namespace pcl
         */
       virtual inline void
       setTargetCloud (const PointCloudInConstPtr &cloud)  { target_input_ = cloud; }
-      
+
     protected:
       /** \brief Abstract method to compute coherence. */
       virtual void
       computeCoherence (const PointCloudInConstPtr &cloud, const IndicesConstPtr &indices, float &w_j) = 0;
-      
+
+      virtual void
+      computeCoherence (PointInT &target) = 0;
+
       inline double calcPointCoherence (PointInT &source, PointInT &target);
-      
+
       /** \brief Get a string representation of the name of this class. */
       inline const std::string& 
       getClassName () const { return (coherence_name_); }
-      
-      
+
+
       /** \brief The coherence name. */
       std::string coherence_name_;
 
@@ -125,7 +128,6 @@ namespace pcl
       /** \brief a list of pointers to PointCoherence.*/
       std::vector<PointCoherencePtr> point_coherences_;
     };
-    
   }
 }
 

@@ -275,44 +275,14 @@ pcl::tracking::ParticleFilterTracker<PointInT, StateT>::weight ()
 template <typename PointInT, typename StateT> void
 pcl::tracking::ParticleFilterTracker<PointInT, StateT>::weight_histogram ()
 {
-  if (!use_normal_)
+  PointCloudInPtr coherence_input (new PointCloudIn);
+  cropInputPointCloud (input_, *coherence_input);
+  coherence_->setTargetCloud (coherence_input);
+
+  for (size_t i = 0; i < particles_->points.size (); i++)
   {
-    for (size_t i = 0; i < particles_->points.size (); i++)
-    {
-      computeTransformedPointCloudWithoutNormal (particles_->points[i], *transed_reference_vector_[i]);
-    }
-    
-    PointCloudInPtr coherence_input (new PointCloudIn);
-    cropInputPointCloud (input_, *coherence_input);
-    
-    coherence_->setTargetCloud (coherence_input);
-    coherence_->initCompute ();
-    for (size_t i = 0; i < particles_->points.size (); i++)
-    {
-      IndicesPtr indices;
-      coherence_->compute (transed_reference_vector_[i], indices, particles_->points[i].weight);
-    }
+    particles_->points[i].weight = coherence_->computeCoherence (particles_->points[i]);
   }
-  else
-  {
-    for (size_t i = 0; i < particles_->points.size (); i++)
-    {
-      IndicesPtr indices (new std::vector<int>);
-      computeTransformedPointCloudWithNormal (particles_->points[i], *indices, *transed_reference_vector_[i]);
-    }
-    
-    PointCloudInPtr coherence_input (new PointCloudIn);
-    cropInputPointCloud (input_, *coherence_input);
-    
-    coherence_->setTargetCloud (coherence_input);
-    coherence_->initCompute ();
-    for (size_t i = 0; i < particles_->points.size (); i++)
-    {
-      IndicesPtr indices (new std::vector<int>);
-      coherence_->compute (transed_reference_vector_[i], indices, particles_->points[i].weight);
-    }
-  }
-  
   normalizeWeight ();
 }
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
