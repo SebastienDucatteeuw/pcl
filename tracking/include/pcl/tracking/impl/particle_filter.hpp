@@ -6,6 +6,7 @@
 #include <pcl/common/transforms.h>
 #include <pcl/tracking/boost.h>
 #include <pcl/tracking/particle_filter.h>
+#include <pcl/tracking/histogram_coherence.h>
 
 template <typename PointInT, typename StateT> bool
 pcl::tracking::ParticleFilterTracker<PointInT, StateT>::initCompute ()
@@ -236,10 +237,10 @@ pcl::tracking::ParticleFilterTracker<PointInT, StateT>::weight ()
     {
       computeTransformedPointCloudWithoutNormal (particles_->points[i], *transed_reference_vector_[i]);
     }
-    
+
     PointCloudInPtr coherence_input (new PointCloudIn);
     cropInputPointCloud (input_, *coherence_input);
-    
+
     coherence_->setTargetCloud (coherence_input);
     coherence_->initCompute ();
     for (size_t i = 0; i < particles_->points.size (); i++)
@@ -255,10 +256,10 @@ pcl::tracking::ParticleFilterTracker<PointInT, StateT>::weight ()
       IndicesPtr indices (new std::vector<int>);
       computeTransformedPointCloudWithNormal (particles_->points[i], *indices, *transed_reference_vector_[i]);
     }
-    
+
     PointCloudInPtr coherence_input (new PointCloudIn);
     cropInputPointCloud (input_, *coherence_input);
-    
+
     coherence_->setTargetCloud (coherence_input);
     coherence_->initCompute ();
     for (size_t i = 0; i < particles_->points.size (); i++)
@@ -267,7 +268,7 @@ pcl::tracking::ParticleFilterTracker<PointInT, StateT>::weight ()
       coherence_->compute (transed_reference_vector_[i], indices, particles_->points[i].weight);
     }
   }
-  
+
   normalizeWeight ();
 }
 
@@ -275,13 +276,13 @@ pcl::tracking::ParticleFilterTracker<PointInT, StateT>::weight ()
 template <typename PointInT, typename StateT> void
 pcl::tracking::ParticleFilterTracker<PointInT, StateT>::weight_histogram ()
 {
+  pcl::tracking::HistogramCoherence<StateT> hist_coh;
   PointCloudInPtr coherence_input (new PointCloudIn);
   cropInputPointCloud (input_, *coherence_input);
-  coherence_->setTargetCloud (coherence_input);
 
   for (size_t i = 0; i < particles_->points.size (); i++)
   {
-    particles_->points[i].weight = coherence_->computeCoherence (particles_->points[i]);
+    particles_->points[i].weight = hist_coh.computeCoherence (particles_->points[i], coherence_input); //or use original input_ cloud
   }
   normalizeWeight ();
 }

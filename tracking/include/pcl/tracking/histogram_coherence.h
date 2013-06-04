@@ -1,37 +1,44 @@
 #ifndef PCL_TRACKING_IMPL_HISTOGRAM_COHERENCE_H_
 #define PCL_TRACKING_IMPL_HISTOGRAM_COHERENCE_H_
 
-#include <pcl/tracking/coherence.h>
-
 namespace pcl
 {
   namespace tracking
   {
-    /** \brief histogram coherence computes coherence between the two points form the histogram distance between them. The histogram distance is calculated in HSV color space.
+    /** \brief histogram coherence computes coherence between a ref hist. and a hypothesis hist. form the histogram distance between them. The histogram distance is calculated in HSV color space.
       * \ingroup tracking
       */
-    template <typename PointInT>
-    class histogramCoherence: public PointCoherence<PointInT>
+    template <typename StateT>
+    class HistogramCoherence
     {
       public:
-        histogramCoherence ()
-        : PointCoherence<PointInT> ()
-        , cluster_width_  (51)
-        , cluster_height_ (51)
-        {}
+        HistogramCoherence ()
+        : clusterWidth_  (51)
+        , clusterHeight_ (51)
+        {
+          std::fill(sourceHistogram_.begin(), sourceHistogram_.end(), 0);
+          std::vector <float> sourceHistogram_(361);
+        }
 
         inline void
-        setClusterWidth (int cluster_width) { cluster_width_  = cluster_width; }
+        setClusterWidth (int cluster_width) { clusterWidth_  = cluster_width; }
 
         inline void
-        setClusterHeight (int cluster_height) { cluster_height_ = cluster_height; }
+        setClusterHeight (int cluster_height) { clusterHeight_ = cluster_height; }
 
-        int cluster_width_;
-        int cluster_height_;
+        inline void
+        setSourceHistogram (std::vector <float> histogram) { sourceHistogram_ = histogram; }
+
+        inline std::vector <float>
+        getSourceHistogram () { return sourceHistogram_; }
+
+        int clusterWidth_;
+        int clusterHeight_;
+        std::vector <float> sourceHistogram_;
 
       protected:
         double
-        computeCoherence (PointInT &target);
+        computeCoherence (StateT &target, pcl::PointCloud<pcl::PointXYZRGBA> &cloud);
     };
   }
 }
