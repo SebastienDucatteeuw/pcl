@@ -12,7 +12,7 @@ namespace pcl
     typedef boost::multi_array<float, 3> array_type;
     typedef array_type::index index;
 
-    double
+    float
     BhattacharyyaDistance (std::vector <float> &hist1, std::vector <float> &hist2) // Both histograms must be normalised
     {
       if (hist1.size () != hist2.size ())
@@ -24,19 +24,19 @@ namespace pcl
       {
         int bins = hist1.size ();
         // Calc the Bhattacharyya coef:
-        bcoeff = 0;
+        float bcoeff = 0;
         for (int i = 0; i < bins; i++)
         {
           bcoeff = bcoeff + std::sqrt(hist1[i] * hist2[i]);
         }
         // Calc the distance between the two distributions
-        bdist = std::sqrt(1 - bcoeff);
+        float bdist = std::sqrt(1 - bcoeff);
 
         return bdist;
       }
     }
 
-    double
+    float
     ChiSquaredDistance (std::vector <float> &hist1, std::vector <float> &hist2)
     {
       if (hist1.size () != hist2.size ())
@@ -46,7 +46,7 @@ namespace pcl
       }
       else
       {
-        double d = 0;
+        float d = 0;
         int M = 361; int N = 361;
         int counter = 0;
         for (int i = 0; i <= 360; i++)
@@ -93,8 +93,8 @@ namespace pcl
       return uvmatrix;
     }
 
-    template <typename StateT> double
-    HistogramCoherence<StateT>::computeCoherence (StateT &target, pcl::PointCloud<pcl::PointXYZRGBA> &cloud)
+    template <typename PointInT, typename StateT> float
+    HistogramCoherence<PointInT, StateT>::computeCoherence (StateT &target, const PointCloudInConstPtr &)
     {
 
 /* TODO
@@ -105,7 +105,7 @@ namespace pcl
       pcl::PointCloud<pcl::PointHSV>::Ptr cloud_cluster_target_hsv (new pcl::PointCloud<pcl::PointXYZHSV>);
 
       // convert target cloud to uvrgba matrix using cloud2uvmatrix
-      array_type target_uvmatrix = cloud2uvmatrix (cloud);
+      array_type target_uvmatrix = cloud2uvmatrix (input_);
 
       static const float cx = 320-.5;
       static const float cy = 240-.5;

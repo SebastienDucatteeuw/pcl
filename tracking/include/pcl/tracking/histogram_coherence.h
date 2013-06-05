@@ -8,8 +8,8 @@ namespace pcl
     /** \brief histogram coherence computes coherence between a ref hist. and a hypothesis hist. form the histogram distance between them. The histogram distance is calculated in HSV color space.
       * \ingroup tracking
       */
-    template <typename StateT>
-    class HistogramCoherence
+    template <typename PointInT, typename StateT>
+    class HistogramCoherence : public Tracker<PointInT, StateT>
     {
       public:
         HistogramCoherence ()
@@ -36,9 +36,12 @@ namespace pcl
         int clusterHeight_;
         std::vector <float> sourceHistogram_;
 
-      protected:
-        double
-        computeCoherence (StateT &target, pcl::PointCloud<pcl::PointXYZRGBA> &cloud);
+        float
+        computeCoherence (StateT &target, const PointCloudInConstPtr &cloud);
+/*
+        float
+        computeCoherence (StateT &target, pcl::PointCloud<pcl::PointXYZRGBA>::Ptr &cloud);
+*/
     };
   }
 }
