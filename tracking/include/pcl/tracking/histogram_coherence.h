@@ -9,9 +9,23 @@ namespace pcl
       * \ingroup tracking
       */
     template <typename PointInT, typename StateT>
-    class HistogramCoherence : public Tracker<PointInT, StateT>
+    class HistogramCoherence : public ParticleFilterTracker<PointInT, StateT>
     {
       public:
+
+        using Tracker<PointInT, StateT>::tracker_name_;
+        using Tracker<PointInT, StateT>::search_;
+        using Tracker<PointInT, StateT>::input_;
+        using Tracker<PointInT, StateT>::indices_;
+        using Tracker<PointInT, StateT>::getClassName;
+
+        typedef Tracker<PointInT, StateT> BaseClass;
+
+        typedef typename Tracker<PointInT, StateT>::PointCloudIn PointCloudIn;
+
+        typedef typename PointCloudIn::Ptr PointCloudInPtr;
+        typedef typename PointCloudIn::ConstPtr PointCloudInConstPtr;
+
         HistogramCoherence ()
         : clusterWidth_  (51)
         , clusterHeight_ (51)
