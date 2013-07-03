@@ -5,16 +5,9 @@
 #include <pcl/tracking/histogram_coherence.h>
 #include <Eigen/Dense>
 
-namespace pcl
+float
+pcl::tracking::HistogramCoherence::BhattacharyyaDistance (std::vector <float> &hist1, std::vector <float> &hist2)
 {
-  namespace tracking
-  {
-    typedef boost::multi_array<float, 3> array_type;
-    typedef array_type::index index;
-
-    float
-    BhattacharyyaDistance (std::vector <float> &hist1, std::vector <float> &hist2) // Both histograms must be normalised
-    {
       if (hist1.size () != hist2.size ())
       {
         PCL_INFO ("[HistogramStatistics::BhattacharyyaDistance] : both histograms do not have the same number of bins\n");
@@ -34,11 +27,11 @@ namespace pcl
 
         return bdist;
       }
-    }
+}
 
-    float
-    ChiSquaredDistance (std::vector <float> &hist1, std::vector <float> &hist2)
-    {
+float
+pcl::tracking:HistogramCoherence::ChiSquaredDistance (std::vector <float> &hist1, std::vector <float> &hist2)
+{
       if (hist1.size () != hist2.size ())
       {
         PCL_INFO ("[HistogramStatistics::ChiSquaredDistance] : both histograms do not have the same number of bins\n");
@@ -63,11 +56,11 @@ namespace pcl
         }
         return d/(M*N);
       }
-    }
+}
 
-    array_type
-    cloud2uvmatrix (pcl::PointCloud<pcl::PointXYZRGBA> &cloud)
-    {
+array_type
+cloud2uvmatrix (pcl::PointCloud<pcl::PointXYZRGBA> &cloud)
+{
       static const float cx = 320-.5;
       static const float cy = 240-.5;
       static const float f  = 525;
@@ -91,11 +84,14 @@ namespace pcl
         }
       }
       return uvmatrix;
-    }
+}
 
-    template <typename PointInT, typename StateT> float
-    HistogramCoherence<PointInT, StateT>::computeCoherence (StateT &target, const PointCloudInConstPtr &)
-    {
+    //template <typename StateT> float
+    //HistogramCoherence<PointInT, StateT>::computeCoherence (StateT &target)
+    
+template <typename StateT> float
+HistogramCoherence<StateT>::computeCoherence (StateT &target)
+{
 
 /* TODO
 - source cluster should be a histogram vector, changing/weighted over time according to the confidence about the colormodel (could be a class variable that can be initialised (only calculate color model once and adapt if necessary) or reset?)
@@ -153,8 +149,6 @@ namespace pcl
 
       // TODO Use case structure to select the desired method to calculate the likelihood
       return BhattacharyyaDistance(sourceHistogram_, target_hist);
-    }
-  }
 }
 
-#endif
+#endif // PCL_TRACKING_IMPL_HISTOGRAM_COHERENCE_H_

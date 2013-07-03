@@ -35,10 +35,18 @@
  *
  */
 #include <pcl/tracking/impl/histogram_coherence.hpp>
+#include <pcl/tracking/impl/tracking.h>
 
 #ifndef PCL_NO_PRECOMPILE
 #include <pcl/impl/instantiate.hpp>
 #include <pcl/point_types.h>
-PCL_INSTANTIATE(HistogramCoherence, PCL_XYZ_POINT_TYPES)
+
+//PCL_INSTANTIATE(HistogramCoherence, PCL_XYZ_POINT_TYPES)
+//PCL_INSTANTIATE(HistogramCoherence, pcl::PointXYZRGBA)
+PCL_INSTANTIATE(HistogramCoherence, PCL_STATE_POINT_TYPES)
+
+//PCL_INSTANTIATE_PRODUCT(HistogramCoherence, ((pcl::PointNormal) (pcl::PointXYZINormal) (pcl::PointXYZRGBNormal))(PCL_STATE_POINT_TYPES))
+//PCL_INSTANTIATE_PRODUCT(HistogramCoherence, ((pcl::PointXYZ) (pcl::PointXYZI) (pcl::PointXYZRGBA) (pcl::PointXYZRGB) (pcl::InterestPoint) (pcl::PointWithRange) (pcl::PointWithViewpoint) (pcl::PointWithScale))(PCL_STATE_POINT_TYPES))
+
 #endif    // PCL_NO_PRECOMPILE
 

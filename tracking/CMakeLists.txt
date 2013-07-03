@@ -24,6 +24,7 @@ if(build)
         include/pcl/${SUBSYS_NAME}/nearest_pair_point_cloud_coherence.h
         include/pcl/${SUBSYS_NAME}/approx_nearest_pair_point_cloud_coherence.h
         include/pcl/${SUBSYS_NAME}/distance_coherence.h
+        include/pcl/${SUBSYS_NAME}/histogram_coherence.h
         include/pcl/${SUBSYS_NAME}/hsv_color_coherence.h
         include/pcl/${SUBSYS_NAME}/normal_coherence.h
         include/pcl/${SUBSYS_NAME}/particle_filter.h
@@ -39,6 +40,7 @@ if(build)
         include/pcl/${SUBSYS_NAME}/impl/nearest_pair_point_cloud_coherence.hpp
         include/pcl/${SUBSYS_NAME}/impl/approx_nearest_pair_point_cloud_coherence.hpp
         include/pcl/${SUBSYS_NAME}/impl/distance_coherence.hpp
+        include/pcl/${SUBSYS_NAME}/impl/histogram_coherence.hpp
         include/pcl/${SUBSYS_NAME}/impl/hsv_color_coherence.hpp
         include/pcl/${SUBSYS_NAME}/impl/normal_coherence.hpp
         include/pcl/${SUBSYS_NAME}/impl/particle_filter.hpp
