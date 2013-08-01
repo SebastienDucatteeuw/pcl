@@ -7,7 +7,7 @@ namespace pcl
 {
   namespace tracking
   {
-    /** \brief histogram coherence computes coherence between a ref hist. and a hypothesis hist. form the histogram distance between them. The histogram distance is calculated in HSV color space.
+    /** \brief histogram coherence computes coherence between a ref hist. and a hypothesis hist. from the histogram distance between them. The histogram distance is calculated in HSV color space.
       * \ingroup tracking
       */
     template <typename StateT>
