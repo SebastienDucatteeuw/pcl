@@ -221,6 +221,36 @@ namespace pcl
           return (registerPointPickingCallback (boost::bind (callback, boost::ref (instance), _1, cookie)));
         }
 
+        /** \brief Register a callback function for area picking events
+          * \param[in] cb a boost function that will be registered as a callback for an area picking event
+          * \return a connection object that allows to disconnect the callback function.
+          */
+        boost::signals2::connection
+        registerAreaPickingCallback (boost::function<void (const pcl::visualization::AreaPickingEvent&)> cb);
+
+        /** \brief Register a callback function for area picking events
+          * \param[in] callback  the function that will be registered as a callback for an area picking event
+          * \param[in] cookie    user data that is passed to the callback
+          * \return a connection object that allows to disconnect the callback function.
+          */
+        inline boost::signals2::connection
+        registerAreaPickingCallback (void (*callback) (const pcl::visualization::AreaPickingEvent&, void*), void* cookie = NULL)
+        {
+          return (registerAreaPickingCallback (boost::bind (callback, _1, cookie)));
+        }
+
+        /** \brief Register a callback function for area picking events
+          * \param[in] callback  the member function that will be registered as a callback for an area picking event
+          * \param[in] instance  instance to the class that implements the callback function
+          * \param[in] cookie    user data that is passed to the callback
+          * \return a connection object that allows to disconnect the callback function.
+          */
+        template<typename T> inline boost::signals2::connection
+        registerAreaPickingCallback (void (T::*callback) (const pcl::visualization::AreaPickingEvent&, void*), T& instance, void* cookie = NULL)
+        {
+          return (registerAreaPickingCallback (boost::bind (callback, boost::ref (instance), _1, cookie)));
+        }
+
         /** \brief Spin method. Calls the interactor and runs an internal loop. */
         void
         spin ();
@@ -449,6 +479,18 @@ namespace pcl
           */
         bool
         updateShapePose (const std::string &id, const Eigen::Affine3f& pose);
+
+        /** \brief Set the pose of an existing point cloud.
+          *
+          * Returns false if the point cloud doesn't exist, true if the pose was succesfully
+          * updated.
+          *
+          * \param[in] id the point cloud object id (i.e., given on \a addPointCloud etc.)
+          * \param[in] pose the new pose
+          * \return false if no point cloud with the specified ID was found
+          */
+        bool
+        updatePointCloudPose (const std::string &id, const Eigen::Affine3f& pose);
 
         /** \brief Add a 3d text to the scene
           * \param[in] text the text to add
@@ -1042,6 +1084,7 @@ namespace pcl
 #else
           stopped_ = true;
           // This tends to close the window...
+          win_->Finalize ();
           interactor_->TerminateApp ();
 #endif
         }

@@ -25,10 +25,12 @@ if(build)
         include/pcl/${SUBSYS_NAME}/correspondence_rejection_surface_normal.h
         include/pcl/${SUBSYS_NAME}/correspondence_rejection_features.h
         include/pcl/${SUBSYS_NAME}/correspondence_rejection_one_to_one.h
+        include/pcl/${SUBSYS_NAME}/correspondence_rejection_poly.h
         include/pcl/${SUBSYS_NAME}/correspondence_rejection_sample_consensus.h
         include/pcl/${SUBSYS_NAME}/correspondence_rejection_sample_consensus_2d.h
         include/pcl/${SUBSYS_NAME}/correspondence_rejection_trimmed.h
         include/pcl/${SUBSYS_NAME}/correspondence_rejection_var_trimmed.h
+        include/pcl/${SUBSYS_NAME}/correspondence_rejection_organized_boundary.h
         include/pcl/${SUBSYS_NAME}/correspondence_sorting.h
         include/pcl/${SUBSYS_NAME}/correspondence_types.h
         include/pcl/${SUBSYS_NAME}/ia_ransac.h
@@ -51,6 +53,7 @@ if(build)
         include/pcl/${SUBSYS_NAME}/transformation_estimation_svd_scale.h
         include/pcl/${SUBSYS_NAME}/transformation_estimation_lm.h
         include/pcl/${SUBSYS_NAME}/transformation_estimation_point_to_plane.h
+        include/pcl/${SUBSYS_NAME}/transformation_estimation_point_to_plane_weighted.h
         include/pcl/${SUBSYS_NAME}/transformation_estimation_point_to_plane_lls.h
         include/pcl/${SUBSYS_NAME}/transformation_estimation_point_to_plane_lls_weighted.h
         include/pcl/${SUBSYS_NAME}/transformation_validation.h
@@ -76,10 +79,12 @@ if(build)
         include/pcl/${SUBSYS_NAME}/impl/correspondence_rejection_surface_normal.hpp
         include/pcl/${SUBSYS_NAME}/impl/correspondence_rejection_features.hpp
         include/pcl/${SUBSYS_NAME}/impl/correspondence_rejection_one_to_one.hpp
+        include/pcl/${SUBSYS_NAME}/impl/correspondence_rejection_poly.hpp
         include/pcl/${SUBSYS_NAME}/impl/correspondence_rejection_sample_consensus.hpp
         include/pcl/${SUBSYS_NAME}/impl/correspondence_rejection_sample_consensus_2d.hpp
         include/pcl/${SUBSYS_NAME}/impl/correspondence_rejection_trimmed.hpp
         include/pcl/${SUBSYS_NAME}/impl/correspondence_rejection_var_trimmed.hpp
+        include/pcl/${SUBSYS_NAME}/impl/correspondence_rejection_organized_boundary.hpp
         include/pcl/${SUBSYS_NAME}/impl/correspondence_types.hpp
         include/pcl/${SUBSYS_NAME}/impl/ia_ransac.hpp
         include/pcl/${SUBSYS_NAME}/impl/icp.hpp
@@ -97,6 +102,7 @@ if(build)
         include/pcl/${SUBSYS_NAME}/impl/transformation_estimation_lm.hpp
         include/pcl/${SUBSYS_NAME}/impl/transformation_estimation_point_to_plane_lls.hpp
         include/pcl/${SUBSYS_NAME}/impl/transformation_estimation_point_to_plane_lls_weighted.hpp
+        include/pcl/${SUBSYS_NAME}/impl/transformation_estimation_point_to_plane_weighted.hpp
         include/pcl/${SUBSYS_NAME}/impl/transformation_validation_euclidean.hpp
         include/pcl/${SUBSYS_NAME}/impl/gicp.hpp
         )
@@ -112,11 +118,13 @@ if(build)
         src/correspondence_rejection_surface_normal.cpp
         src/correspondence_rejection_features.cpp
         src/correspondence_rejection_one_to_one.cpp
+        src/correspondence_rejection_poly.cpp
         src/correspondence_types.cpp
         src/correspondence_rejection_sample_consensus.cpp
         src/correspondence_rejection_sample_consensus_2d.cpp
         src/correspondence_rejection_trimmed.cpp
         src/correspondence_rejection_var_trimmed.cpp
+        src/correspondence_rejection_organized_boundary.cpp
         src/ppf_registration.cpp
         src/pyramid_feature_matching.cpp
         #src/pairwise_graph_registration.cpp
@@ -132,6 +140,7 @@ if(build)
         src/transformation_estimation_svd.cpp
         src/transformation_estimation_svd_scale.cpp
         src/transformation_estimation_lm.cpp
+        src/transformation_estimation_point_to_plane_weighted.cpp
         src/transformation_estimation_point_to_plane_lls.cpp
         src/transformation_estimation_point_to_plane_lls_weighted.cpp
         src/transformation_validation_euclidean.cpp

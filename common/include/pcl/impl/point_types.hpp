@@ -144,8 +144,7 @@ namespace pcl
 {
 
 #define PCL_ADD_POINT4D \
-  EIGEN_ALIGN16 \
-  union { \
+  union EIGEN_ALIGN16 { \
     float data[4]; \
     struct { \
       float x; \
@@ -163,8 +162,7 @@ namespace pcl
   inline const Eigen::Map<const Eigen::Array4f, Eigen::Aligned> getArray4fMap () const { return (Eigen::Array4f::MapAligned (data)); }
 
 #define PCL_ADD_NORMAL4D \
-  EIGEN_ALIGN16 \
-  union { \
+  union EIGEN_ALIGN16 { \
     float data_n[4]; \
     float normal[3]; \
     struct { \
@@ -1220,6 +1218,15 @@ namespace pcl
         float z_axis[3];
       };
     };
+
+    inline Eigen::Map<Eigen::Vector3f> getXAxisVector3fMap () { return (Eigen::Vector3f::Map (x_axis)); }
+    inline const Eigen::Map<const Eigen::Vector3f> getXAxisVector3fMap () const { return (Eigen::Vector3f::Map (x_axis)); }
+    inline Eigen::Map<Eigen::Vector3f> getYAxisVector3fMap () { return (Eigen::Vector3f::Map (y_axis)); }
+    inline const Eigen::Map<const Eigen::Vector3f> getYAxisVector3fMap () const { return (Eigen::Vector3f::Map (y_axis)); }
+    inline Eigen::Map<Eigen::Vector3f> getZAxisVector3fMap () { return (Eigen::Vector3f::Map (z_axis)); }
+    inline const Eigen::Map<const Eigen::Vector3f> getZAxisVector3fMap () const { return (Eigen::Vector3f::Map (z_axis)); }
+    inline Eigen::Map<Eigen::Matrix3f> getMatrix3fMap () { return (Eigen::Matrix3f::Map (rf)); }
+    inline const Eigen::Map<const Eigen::Matrix3f> getMatrix3fMap () const { return (Eigen::Matrix3f::Map (rf)); }
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   };
