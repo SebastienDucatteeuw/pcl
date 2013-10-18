@@ -59,11 +59,12 @@ namespace pcl {
       fptr_ function_ptr_;                        // This is the method the user needs to implement
 
       HistogramStatistics (float min, float max, unsigned int dim, bool cumulative = false, bool normalize = false)
-        :min_ (min)
-        ,max_ (max)
-        ,dim_ (dim)
-        ,cumulative_ (cumulative)
-        ,normalize_ (normalize)
+        : min_ (min)
+        , max_ (max)
+        , dim_ (dim)
+        , cumulative_ (cumulative)
+        , normalize_ (normalize)
+        , counter_ (0)
       {
       }
 
@@ -178,6 +179,7 @@ namespace pcl {
             else
             {
               bins_[bin]++;
+              counter_++;
             }
           }
         }
@@ -194,6 +196,7 @@ namespace pcl {
 
         return_values = bins_;
         bins_.clear ();
+        counter_ = 0;
       }
 
 
@@ -207,7 +210,7 @@ namespace pcl {
       {
         for (int i = 0; i < dim_; ++i)
         {
-          bins_[i] /= entries_;
+          bins_[i] /= counter_;
         }
       }
 
@@ -230,7 +233,8 @@ namespace pcl {
       float min_;
       float max_;
 
-      unsigned int entries_;          // The number of entries over all bins before normalisation
+      unsigned int entries_;          // The number of entries in the cloud
+      unsigned int counter_;          // The number of entries over all bins before normalisation (counter_ <= entries_ due to filtering on saturation or value)
 
       unsigned int dim_;              // Indicates the number of bins
       std::vector <float> bins_;      // Holds the actual bins
