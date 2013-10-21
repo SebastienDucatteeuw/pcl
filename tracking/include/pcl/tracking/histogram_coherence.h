@@ -17,20 +17,19 @@ namespace pcl
       typedef array_type::index index;
 
       public:
-
         HistogramCoherence ()
         : clusterWidth_  (51)
         , clusterHeight_ (51)
+        , sourceHistogram_ (361)
         {
           std::fill(sourceHistogram_.begin(), sourceHistogram_.end(), 0);
-          std::vector <float> sourceHistogram_(361);
         }
 
         inline void
-        setClusterWidth (int cluster_width) { clusterWidth_  = cluster_width; }
+        setClusterWidth (int cluster_width) { clusterWidth_  = cluster_width; } //TODO only odd numbers -> check!
 
         inline void
-        setClusterHeight (int cluster_height) { clusterHeight_ = cluster_height; }
+        setClusterHeight (int cluster_height) { clusterHeight_ = cluster_height; } //TODO only odd numbers -> check!
 
         inline void
         setSourceHistogram (std::vector <float> histogram) { sourceHistogram_ = histogram; }

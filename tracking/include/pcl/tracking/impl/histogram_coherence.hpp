@@ -8,12 +8,12 @@
 float
 pcl::tracking::HistogramCoherence::BhattacharyyaDistance (std::vector <float> &hist1, std::vector <float> &hist2)
 {
-      if (hist1.size () != hist2.size ())
-      {
-        PCL_INFO ("[HistogramStatistics::BhattacharyyaDistance] : both histograms do not have the same number of bins\n");
-        return 0;
-      }
-      else
+  if (hist1.size () != hist2.size ())
+  {
+    PCL_INFO ("[HistogramStatistics::BhattacharyyaDistance] : both histograms do not have the same number of bins\n");
+    return 0;
+  }
+  else
       {
         int bins = hist1.size ();
         // Calc the Bhattacharyya coef:
@@ -77,7 +77,7 @@ cloud2uvmatrix (pcl::PointCloud<pcl::PointXYZRGBA> &cloud)
         u = (int) f*(cloud->points[i].x/cloud->points[i].z) + cx;
         v = (int) f*(cloud->points[i].y/cloud->points[i].z) + cy;
 
-        if (cloud->points[i].z < uvmatrix[u][v][1] || uvmatrix[u][v][0] == 0) // save rgba value to points with zero rgba value or points with smaller z-values
+        if ((cloud->points[i].z < uvmatrix[u][v][1]) || (uvmatrix[u][v][0] == 0)) // save rgba value to points with zero rgba value or points with smaller z-values
         {
           uvmatrix[u][v][0] = cloud->points[i].rgba
           uvmatrix[u][v][1] = cloud->points[i].z
@@ -107,8 +107,8 @@ HistogramCoherence<StateT>::computeCoherence (StateT &target)
       static const float cy = 240-.5;
       static const float f  = 525;
 
-      int target_cluster_u = f*(target.x/target.z) + cx;     // u center of the target cluster
-      int target_cluster_v = f*(target.y/target.z) + cy;     // v center of the target cluster
+      int target_cluster_u = f*(target.x/target.z) + cx;     // u coordinate of target center
+      int target_cluster_v = f*(target.y/target.z) + cy;     // v coordinate of target center
 
       // check if cluster fits in target matrix
       if (!((clusterWidth_ - 1)/2 <= target_cluster_u <= 640 - (clusterWidth_ - 1)/2))
@@ -131,9 +131,9 @@ HistogramCoherence<StateT>::computeCoherence (StateT &target)
       cloud_cluster_target->points.resize (clusterWidth_ * clusterHeight_);
 
       int i = 0;
-      for (int row = cluster_y - v_border; row <= cluster_y + v_border; row++)
+      for (int row = target_cluster_v - v_border; row <= target_cluster_v + v_border; row++)
       {
-        for (int column = cluster_x - u_border; column <= cluster_x + u_border; column++)
+        for (int column = target_cluster_u - u_border; column <= target_cluster_u + u_border; column++)
         {
           cloud_cluster_target->points[i].rgba = target_uvmatrix[row][column][0];
           i++;
@@ -141,14 +141,14 @@ HistogramCoherence<StateT>::computeCoherence (StateT &target)
       }
 
       // Calculate histogram distance
-      std::vecotr <float> targetHistogram(361);
+      std::vector <float> targetHistogram(361);
       PointCloudXYZRGBAtoXYZHSV (*cloud_cluster_target, *cloud_cluster_target_hsv);
 
-      pcl::HistogramStatistics <pcl::PointXYZHSV> obj (0, 360, 361, false, true);
+      pcl::HistogramStatistics <pcl::PointXYZHSV> obj (0, 360, 361, false, true); //TODO create object at class instantiation
       obj.computeHue (*cloud_cluster_target_hsv, targetHistogram);
 
       // TODO Use case structure to select the desired method to calculate the likelihood
-      return BhattacharyyaDistance(sourceHistogram_, target_hist);
+      return BhattacharyyaDistance(sourceHistogram_, targetHistogram);
 }
 
 #endif // PCL_TRACKING_IMPL_HISTOGRAM_COHERENCE_H_
