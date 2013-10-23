@@ -5,15 +5,16 @@
 #include <pcl/tracking/histogram_coherence.h>
 #include <Eigen/Dense>
 
-float
-pcl::tracking::HistogramCoherence::BhattacharyyaDistance (std::vector <float> &hist1, std::vector <float> &hist2)
-{
-  if (hist1.size () != hist2.size ())
-  {
-    PCL_INFO ("[HistogramStatistics::BhattacharyyaDistance] : both histograms do not have the same number of bins\n");
-    return 0;
-  }
-  else
+
+    template <typename StateT> float
+    pcl::HistogramCoherence<StateT>::BhattacharyyaDistance (std::vector <float> &hist1, std::vector <float> &hist2)
+    {
+      if (hist1.size () != hist2.size ())
+      {
+        //PCL_INFO ("[HistogramStatistics::BhattacharyyaDistance] : both histograms do not have the same number of bins\n");
+        return 0;
+      }
+      else
       {
         int bins = hist1.size ();
         // Calc the Bhattacharyya coef:
@@ -27,14 +28,14 @@ pcl::tracking::HistogramCoherence::BhattacharyyaDistance (std::vector <float> &h
 
         return bdist;
       }
-}
+    }
 
-float
-pcl::tracking:HistogramCoherence::ChiSquaredDistance (std::vector <float> &hist1, std::vector <float> &hist2)
-{
+    template <typename StateT> float
+    pcl::HistogramCoherence<StateT>::ChiSquaredDistance (std::vector <float> &hist1, std::vector <float> &hist2)
+    {
       if (hist1.size () != hist2.size ())
       {
-        PCL_INFO ("[HistogramStatistics::ChiSquaredDistance] : both histograms do not have the same number of bins\n");
+        //PCL_INFO ("[HistogramStatistics::ChiSquaredDistance] : both histograms do not have the same number of bins\n");
         return 0;
       }
       else
@@ -56,52 +57,49 @@ pcl::tracking:HistogramCoherence::ChiSquaredDistance (std::vector <float> &hist1
         }
         return d/(M*N);
       }
-}
+    }
 
-array_type
-cloud2uvmatrix (pcl::PointCloud<pcl::PointXYZRGBA> &cloud)
-{
+    template <typename StateT> boost::multi_array<float, 3>
+    pcl::HistogramCoherence<StateT>::cloud2uvmatrix (pcl::PointCloud<pcl::PointXYZRGBA> &cloud)
+    {
       static const float cx = 320-.5;
       static const float cy = 240-.5;
       static const float f  = 525;
 
-      array_type uvmatrix(boost::extents[480][640][2]);
-      index u;
-      index v;
+      boost::multi_array<float, 3> uvmatrix(boost::extents[480][640][2]);
+      boost::multi_array<float, 3>::index u;
+      boost::multi_array<float, 3>::index v;
 
       //set all element to zero
       std::fill(uvmatrix.begin()->begin()->begin(), uvmatrix.end()->end()->end(), 0);
 
-      for (int i = 0; i < cloud->points.size (); i++)
+      for (int i = 0; i < cloud.points.size (); i++)
       {
-        u = (int) f*(cloud->points[i].x/cloud->points[i].z) + cx;
-        v = (int) f*(cloud->points[i].y/cloud->points[i].z) + cy;
+        u = (int) f*(cloud.points[i].x/cloud.points[i].z) + cx;
+        v = (int) f*(cloud.points[i].y/cloud.points[i].z) + cy;
 
-        if ((cloud->points[i].z < uvmatrix[u][v][1]) || (uvmatrix[u][v][0] == 0)) // save rgba value to points with zero rgba value or points with smaller z-values
+        if ((cloud.points[i].z < uvmatrix[u][v][1]) || (uvmatrix[u][v][0] == 0)) // save rgba value to points with zero rgba value or points with smaller z-values
         {
-          uvmatrix[u][v][0] = cloud->points[i].rgba
-          uvmatrix[u][v][1] = cloud->points[i].z
+          uvmatrix[u][v][0] = cloud.points[i].rgba;
+          uvmatrix[u][v][1] = cloud.points[i].z;
         }
       }
       return uvmatrix;
-}
+    }
 
-    //template <typename StateT> float
-    //HistogramCoherence<PointInT, StateT>::computeCoherence (StateT &target)
-    
-template <typename StateT> float
-HistogramCoherence<StateT>::computeCoherence (StateT &target)
-{
+    template <typename StateT> float
+    pcl::HistogramCoherence<StateT>::computeCoherence (StateT &target)
+    {
 
-/* TODO
-- source cluster should be a histogram vector, changing/weighted over time according to the confidence about the colormodel (could be a class variable that can be initialised (only calculate color model once and adapt if necessary) or reset?)
-- target cluster should be the target_input_ cloud from the coherence_ obj.
-*/
+      /* TODO
+      - source cluster should be a histogram vector, changing/weighted over time according to the confidence about the colormodel (could be a class variable that can be initialised (only calculate color model once and adapt if necessary) or reset?)
+      - target cluster should be the target_input_ cloud from the coherence_ obj.
+      */
       pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_cluster_target (new pcl::PointCloud<pcl::PointXYZRGBA>);
-      pcl::PointCloud<pcl::PointHSV>::Ptr cloud_cluster_target_hsv (new pcl::PointCloud<pcl::PointXYZHSV>);
+      pcl::PointCloud<pcl::PointXYZHSV>::Ptr cloud_cluster_target_hsv (new pcl::PointCloud<pcl::PointXYZHSV>);
 
       // convert target cloud to uvrgba matrix using cloud2uvmatrix
-      array_type target_uvmatrix = cloud2uvmatrix (input_);
+      boost::multi_array<float, 3> target_uvmatrix = pcl::HistogramCoherence<StateT>::cloud2uvmatrix (input_);
 
       static const float cx = 320-.5;
       static const float cy = 240-.5;
@@ -113,12 +111,12 @@ HistogramCoherence<StateT>::computeCoherence (StateT &target)
       // check if cluster fits in target matrix
       if (!((clusterWidth_ - 1)/2 <= target_cluster_u <= 640 - (clusterWidth_ - 1)/2))
       {
-        PCL_INFO ("invalid center u-coordinate cluster\n");
+        //PCL_INFO ("invalid center u-coordinate cluster\n");
       }
 
       if (!((clusterHeight_ - 1)/2 <= target_cluster_v <= 480 - (clusterHeight_ - 1)/2))
       {
-        PCL_INFO ("invalid center v-coordinate cluster\n");
+        //PCL_INFO ("invalid center v-coordinate cluster\n");
       }
 
       // Set border size
@@ -149,6 +147,8 @@ HistogramCoherence<StateT>::computeCoherence (StateT &target)
 
       // TODO Use case structure to select the desired method to calculate the likelihood
       return BhattacharyyaDistance(sourceHistogram_, targetHistogram);
+    }
+  }
 }
 
 #endif // PCL_TRACKING_IMPL_HISTOGRAM_COHERENCE_H_

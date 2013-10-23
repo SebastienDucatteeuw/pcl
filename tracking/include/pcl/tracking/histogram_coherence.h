@@ -1,20 +1,24 @@
-#ifndef PCL_TRACKING_IMPL_HISTOGRAM_COHERENCE_H_
-#define PCL_TRACKING_IMPL_HISTOGRAM_COHERENCE_H_
+#ifndef PCL_TRACKING_HISTOGRAM_COHERENCE_H_
+#define PCL_TRACKING_HISTOGRAM_COHERENCE_H_
 
 #include "boost/multi_array.hpp"
+#include <pcl/point_types.h>
+#include <pcl/point_types_conversion.h>
 
 namespace pcl
 {
-  namespace tracking
-  {
     /** \brief histogram coherence computes coherence between a ref hist. and a hypothesis hist. from the histogram distance between them. The histogram distance is calculated in HSV color space.
       * \ingroup tracking
       */
-    template <typename StateT>
-    class HistogramCoherence
+    template <typename PointInT, typename StateT>
+    class HistogramCoherence: public PCLBase<PointInT>
     {
-      typedef boost::multi_array<float, 3> array_type;
-      typedef array_type::index index;
+      //typedef boost::multi_array<float, 3> array_type; TODO if public, could be used in .hpp file? (as in coherence.h)
+      //typedef array_type::index index;
+
+      public:
+        using PCLBase<PointInT>::indices_;
+        using PCLBase<PointInT>::input_;
 
       public:
         HistogramCoherence ()
@@ -54,19 +58,16 @@ namespace pcl
         float
         ChiSquaredDistance (std::vector <float> &hist1, std::vector <float> &hist2);
 
-        array_type
+        boost::multi_array<float, 3>
         cloud2uvmatrix (pcl::PointCloud<pcl::PointXYZRGBA> &cloud);
-
     };
-  }
 }
 
-//#ifdef PCL_NO_PRECOMPILE
+#ifdef PCL_NO_PRECOMPILE
 #include <pcl/tracking/impl/histogram_coherence.hpp>
-//#endif
+#endif
 
-#endif // PCL_TRACKING_IMPL_HISTOGRAM_COHERENCE_H_
-
+#endif // PCL_TRACKING_HISTOGRAM_COHERENCE_H_
 
 /*
 namespace pcl

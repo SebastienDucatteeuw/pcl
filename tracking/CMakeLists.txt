@@ -14,6 +14,7 @@ if(build)
         src/particle_filter.cpp
         src/kld_adaptive_particle_filter.cpp
         src/coherence.cpp
+        src/histogram_coherence.cpp
         )
 
     set(incs 
