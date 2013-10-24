@@ -36,11 +36,14 @@
  */
 
 #include <pcl/point_types.h>
+#include <pcl/tracking/tracking.h>
 #include <pcl/impl/instantiate.hpp>
 #include <pcl/tracking/histogram_coherence.h>
 #include <pcl/tracking/impl/histogram_coherence.hpp>
 
-PCL_INSTANTIATE_PRODUCT(HistogramCoherence, ((pcl::PointXYZRGBA))(pcl::tracking::ParticleXYZRPY))
+//PCL_INSTANTIATE_PRODUCT(HistogramCoherence, ((pcl::PointXYZRGBA))(pcl::tracking::ParticleXYZRPY))
+
+template class PCL_EXPORTS pcl::tracking::HistogramCoherence<pcl::PointXYZRGBA, pcl::tracking::ParticleXYZRPY>;
 
 /*
 #ifndef PCL_NO_PRECOMPILE

@@ -4,7 +4,7 @@
 #include <pcl/common/statistics/statistics.h>
 #include <pcl/tracking/histogram_coherence.h>
 #include <Eigen/Dense>
-
+//#include <pcl/pcl_macros.h> // Include PCL macros such as PCL_ERROR, etc
 
     template <typename PointInT, typename StateT> float
     pcl::tracking::HistogramCoherence<PointInT, StateT>::BhattacharyyaDistance (std::vector <float> &hist1, std::vector <float> &hist2)
@@ -60,7 +60,7 @@
     }
 
     template <typename PointInT, typename StateT> boost::multi_array<float, 3>
-    pcl::tracking::HistogramCoherence<PointInT, StateT>::cloud2uvmatrix (pcl::PointCloud<pcl::PointXYZRGBA> &cloud)
+    pcl::tracking::HistogramCoherence<PointInT, StateT>::cloud2uvmatrix ()
     {
       static const float cx = 320-.5;
       static const float cy = 240-.5;
@@ -73,15 +73,15 @@
       //set all element to zero
       std::fill(uvmatrix.begin()->begin()->begin(), uvmatrix.end()->end()->end(), 0);
 
-      for (int i = 0; i < cloud.points.size (); i++)
+      for (int i = 0; i < input_->points.size (); i++)
       {
-        u = (int) f*(cloud.points[i].x/cloud.points[i].z) + cx;
-        v = (int) f*(cloud.points[i].y/cloud.points[i].z) + cy;
+        u = (int) f*(input_->points[i].x/input_->points[i].z) + cx;
+        v = (int) f*(input_->points[i].y/input_->points[i].z) + cy;
 
-        if ((cloud.points[i].z < uvmatrix[u][v][1]) || (uvmatrix[u][v][0] == 0)) // save rgba value to points with zero rgba value or points with smaller z-values
+        if ((input_->points[i].z < uvmatrix[u][v][1]) || (uvmatrix[u][v][0] == 0)) // save rgba value to points with zero rgba value or points with smaller z-values
         {
-          uvmatrix[u][v][0] = cloud.points[i].rgba;
-          uvmatrix[u][v][1] = cloud.points[i].z;
+          uvmatrix[u][v][0] = input_->points[i].rgba;
+          uvmatrix[u][v][1] = input_->points[i].z;
         }
       }
       return uvmatrix;
@@ -90,16 +90,16 @@
     template <typename PointInT, typename StateT> float
     pcl::tracking::HistogramCoherence<PointInT, StateT>::computeCoherence (StateT &target)
     {
-
       /* TODO
       - source cluster should be a histogram vector, changing/weighted over time according to the confidence about the colormodel (could be a class variable that can be initialised (only calculate color model once and adapt if necessary) or reset?)
       - target cluster should be the target_input_ cloud from the coherence_ obj.
       */
+
       pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_cluster_target (new pcl::PointCloud<pcl::PointXYZRGBA>);
       pcl::PointCloud<pcl::PointXYZHSV>::Ptr cloud_cluster_target_hsv (new pcl::PointCloud<pcl::PointXYZHSV>);
 
       // convert target cloud to uvrgba matrix using cloud2uvmatrix
-      boost::multi_array<float, 3> target_uvmatrix = pcl::tracking::HistogramCoherence<PointInT, StateT>::cloud2uvmatrix (input_);
+      boost::multi_array<float, 3> target_uvmatrix = pcl::tracking::HistogramCoherence<PointInT, StateT>::cloud2uvmatrix ();
 
       static const float cx = 320-.5;
       static const float cy = 240-.5;
@@ -109,14 +109,16 @@
       int target_cluster_v = f*(target.y/target.z) + cy;     // v coordinate of target center
 
       // check if cluster fits in target matrix
-      if (!((clusterWidth_ - 1)/2 <= target_cluster_u <= 640 - (clusterWidth_ - 1)/2))
+      if (!( ((clusterWidth_-1)/2 <= target_cluster_u) || (target_cluster_u <= 640-(clusterWidth_-1)/2) ))
       {
-        //PCL_INFO ("invalid center u-coordinate cluster\n");
+        //PCL_ERROR ("Invalid center u-coordinate cluster");
+        std::cout << "Invalid center u-coordinate cluster" << std::endl;
       }
 
-      if (!((clusterHeight_ - 1)/2 <= target_cluster_v <= 480 - (clusterHeight_ - 1)/2))
+      if (!( ((clusterHeight_-1)/2 <= target_cluster_v) || (target_cluster_v <= 480-(clusterHeight_-1)/2) ))
       {
-        //PCL_INFO ("invalid center v-coordinate cluster\n");
+        //PCL_ERROR ("Invalid center v-coordinate cluster");
+        std::cout << "Invalid center v-coordinate cluster" << std::endl;
       }
 
       // Set border size
