@@ -3,10 +3,15 @@
 
 #include "boost/multi_array.hpp"
 #include <pcl/point_types.h>
-#include <pcl/point_types_conversion.h>
+//#include <pcl/point_types_conversion.h>
+//#include <pcl/tracking/tracking.h>
+//#include <pcl/tracking/tracker.h>
+//#include <pcl/tracking/coherence.h>
 
 namespace pcl
 {
+  namespace tracking
+  {
     /** \brief histogram coherence computes coherence between a ref hist. and a hypothesis hist. from the histogram distance between them. The histogram distance is calculated in HSV color space.
       * \ingroup tracking
       */
@@ -61,6 +66,7 @@ namespace pcl
         boost::multi_array<float, 3>
         cloud2uvmatrix (pcl::PointCloud<pcl::PointXYZRGBA> &cloud);
     };
+  }
 }
 
 #ifdef PCL_NO_PRECOMPILE

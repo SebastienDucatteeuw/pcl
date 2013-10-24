@@ -6,8 +6,8 @@
 #include <Eigen/Dense>
 
 
-    template <typename StateT> float
-    pcl::HistogramCoherence<StateT>::BhattacharyyaDistance (std::vector <float> &hist1, std::vector <float> &hist2)
+    template <typename PointInT, typename StateT> float
+    pcl::tracking::HistogramCoherence<PointInT, StateT>::BhattacharyyaDistance (std::vector <float> &hist1, std::vector <float> &hist2)
     {
       if (hist1.size () != hist2.size ())
       {
@@ -30,8 +30,8 @@
       }
     }
 
-    template <typename StateT> float
-    pcl::HistogramCoherence<StateT>::ChiSquaredDistance (std::vector <float> &hist1, std::vector <float> &hist2)
+    template <typename PointInT, typename StateT> float
+    pcl::tracking::HistogramCoherence<PointInT, StateT>::ChiSquaredDistance (std::vector <float> &hist1, std::vector <float> &hist2)
     {
       if (hist1.size () != hist2.size ())
       {
@@ -59,8 +59,8 @@
       }
     }
 
-    template <typename StateT> boost::multi_array<float, 3>
-    pcl::HistogramCoherence<StateT>::cloud2uvmatrix (pcl::PointCloud<pcl::PointXYZRGBA> &cloud)
+    template <typename PointInT, typename StateT> boost::multi_array<float, 3>
+    pcl::tracking::HistogramCoherence<PointInT, StateT>::cloud2uvmatrix (pcl::PointCloud<pcl::PointXYZRGBA> &cloud)
     {
       static const float cx = 320-.5;
       static const float cy = 240-.5;
@@ -87,8 +87,8 @@
       return uvmatrix;
     }
 
-    template <typename StateT> float
-    pcl::HistogramCoherence<StateT>::computeCoherence (StateT &target)
+    template <typename PointInT, typename StateT> float
+    pcl::tracking::HistogramCoherence<PointInT, StateT>::computeCoherence (StateT &target)
     {
 
       /* TODO
@@ -99,7 +99,7 @@
       pcl::PointCloud<pcl::PointXYZHSV>::Ptr cloud_cluster_target_hsv (new pcl::PointCloud<pcl::PointXYZHSV>);
 
       // convert target cloud to uvrgba matrix using cloud2uvmatrix
-      boost::multi_array<float, 3> target_uvmatrix = pcl::HistogramCoherence<StateT>::cloud2uvmatrix (input_);
+      boost::multi_array<float, 3> target_uvmatrix = pcl::tracking::HistogramCoherence<PointInT, StateT>::cloud2uvmatrix (input_);
 
       static const float cx = 320-.5;
       static const float cy = 240-.5;
@@ -140,7 +140,7 @@
 
       // Calculate histogram distance
       std::vector <float> targetHistogram(361);
-      PointCloudXYZRGBAtoXYZHSV (*cloud_cluster_target, *cloud_cluster_target_hsv);
+      //PointCloudXYZRGBAtoXYZHSV (*cloud_cluster_target, *cloud_cluster_target_hsv);
 
       pcl::HistogramStatistics <pcl::PointXYZHSV> obj (0, 360, 361, false, true); //TODO create object at class instantiation
       obj.computeHue (*cloud_cluster_target_hsv, targetHistogram);
@@ -148,7 +148,7 @@
       // TODO Use case structure to select the desired method to calculate the likelihood
       return BhattacharyyaDistance(sourceHistogram_, targetHistogram);
     }
-  }
-}
+
+#define PCL_INSTANTIATE_HistogramCoherence(T,ST) template class PCL_EXPORTS pcl::tracking::HistogramCoherence<T,ST>;
 
 #endif // PCL_TRACKING_IMPL_HISTOGRAM_COHERENCE_H_

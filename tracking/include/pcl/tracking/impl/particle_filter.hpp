@@ -273,10 +273,11 @@ pcl::tracking::ParticleFilterTracker<PointInT, StateT>::weight ()
 }
 
 //Test----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+/*
 template <typename PointInT, typename StateT> void
 pcl::tracking::ParticleFilterTracker<PointInT, StateT>::weight_histogram ()
 {
-  pcl::tracking::HistogramCoherence<StateT> hist_coh;
+  pcl::HistogramCoherence<PointInT, StateT> hist_coh;
   //pcl::PointCloud<pcl::PointXYZRGBA>::Ptr coherence_input (new pcl::PointCloud<pcl::PointXYZRGBA>);
   //cropInputPointCloud (input_, *coherence_input);
 
@@ -287,6 +288,7 @@ pcl::tracking::ParticleFilterTracker<PointInT, StateT>::weight_histogram ()
 
   normalizeWeight ();
 }
+*/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 template <typename PointInT, typename StateT> void

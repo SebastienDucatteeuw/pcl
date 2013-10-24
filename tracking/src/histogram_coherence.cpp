@@ -34,16 +34,22 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *
  */
-#include <pcl/tracking/impl/histogram_coherence.hpp>
-#include <pcl/tracking/impl/tracking.hpp>
 
+#include <pcl/point_types.h>
+#include <pcl/impl/instantiate.hpp>
+#include <pcl/tracking/histogram_coherence.h>
+#include <pcl/tracking/impl/histogram_coherence.hpp>
+
+PCL_INSTANTIATE_PRODUCT(HistogramCoherence, ((pcl::PointXYZRGBA))(pcl::tracking::ParticleXYZRPY))
+
+/*
 #ifndef PCL_NO_PRECOMPILE
 #include <pcl/impl/instantiate.hpp>
 #include <pcl/point_types.h>
-PCL_INSTANTIATE(HistogramCoherence, PCL_STATE_POINT_TYPES)
+//PCL_INSTANTIATE(HistogramCoherence, PCL_STATE_POINT_TYPES)
 
 //PCL_INSTANTIATE_PRODUCT(HistogramCoherence, ((pcl::PointNormal) (pcl::PointXYZINormal) (pcl::PointXYZRGBNormal))(PCL_STATE_POINT_TYPES))
 //PCL_INSTANTIATE_PRODUCT(HistogramCoherence, ((pcl::PointXYZ) (pcl::PointXYZI) (pcl::PointXYZRGBA) (pcl::PointXYZRGB) (pcl::InterestPoint) (pcl::PointWithRange) (pcl::PointWithViewpoint) (pcl::PointWithScale))(PCL_STATE_POINT_TYPES))
 
 #endif    // PCL_NO_PRECOMPILE
-
+*/
