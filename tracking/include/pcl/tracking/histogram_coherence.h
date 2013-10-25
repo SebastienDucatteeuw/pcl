@@ -4,7 +4,6 @@
 #include <boost/multi_array.hpp>
 #include <pcl/point_types.h>
 #include <pcl/pcl_base.h>
-//#include <pcl/point_types_conversion.h>
 
 namespace pcl
 {

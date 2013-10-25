@@ -4,6 +4,7 @@
 #include <pcl/common/statistics/statistics.h>
 #include <pcl/tracking/histogram_coherence.h>
 #include <Eigen/Dense>
+#include <pcl/point_types_conversion.h>
 //#include <pcl/pcl_macros.h> // Include PCL macros such as PCL_ERROR, etc
 
     template <typename PointInT, typename StateT> float
@@ -142,7 +143,7 @@
 
       // Calculate histogram distance
       std::vector <float> targetHistogram(361);
-      //PointCloudXYZRGBAtoXYZHSV (*cloud_cluster_target, *cloud_cluster_target_hsv);
+      PointCloudXYZRGBAtoXYZHSV (*cloud_cluster_target, *cloud_cluster_target_hsv);
 
       pcl::HistogramStatistics <pcl::PointXYZHSV> obj (0, 360, 361, false, true); //TODO create object at class instantiation
       obj.computeHue (*cloud_cluster_target_hsv, targetHistogram);
