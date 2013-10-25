@@ -16,6 +16,7 @@ namespace pcl
     class HistogramCoherence: public PCLBase<PointInT>
     {
       protected:
+        using PCLBase<PointInT>::initCompute;
         using PCLBase<PointInT>::deinitCompute;
 
       public:
@@ -31,11 +32,6 @@ namespace pcl
           std::fill(sourceHistogram_.begin(), sourceHistogram_.end(), 0);
         }
 
-      protected:
-        /** \brief This method should get called before starting the actual computation. */
-        virtual bool
-        initCompute ();
-
       public:
         inline void
         setClusterWidth (int cluster_width) { clusterWidth_  = cluster_width; } //TODO only odd numbers -> check!
@@ -49,14 +45,6 @@ namespace pcl
         inline std::vector <float>
         getSourceHistogram () { return sourceHistogram_; }
 
-        int clusterWidth_;
-        int clusterHeight_;
-        std::vector <float> sourceHistogram_;
-
-        float
-        computeCoherence (StateT &target);
-
-      private:
         /**
           * @brief calculates the BhattacharyyaDistance
           */
@@ -68,6 +56,13 @@ namespace pcl
 
         boost::multi_array<float, 3>
         cloud2uvmatrix ();
+
+        float
+        computeCoherence (const StateT& target);
+
+        int clusterWidth_;
+        int clusterHeight_;
+        std::vector <float> sourceHistogram_;
     };
   }
 }

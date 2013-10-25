@@ -354,7 +354,7 @@ namespace pcl
         virtual void weight ();
 
         /** \brief Weighting phase of particle filter method. Calculate the likelihood of all particles based on histogram coherence and set the weights. */
-        //virtual void weight_histogram ();
+        virtual void weight_histogram ();
 
         /** \brief Resampling phase of particle filter method. Sampling the particles according to the weights calculated 
           * in weight method. In particular, "sample with replacement" is archieved by walker's alias method.

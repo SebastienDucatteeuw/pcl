@@ -56,22 +56,23 @@
             counter++;
           }
         }
-        return d/(M*N);
+        return d/(M*N); //TODO not correctly normalized...
       }
     }
 
     template <typename PointInT, typename StateT> boost::multi_array<float, 3>
     pcl::tracking::HistogramCoherence<PointInT, StateT>::cloud2uvmatrix ()
     {
+      initCompute ();
+
       static const float cx = 320-.5;
       static const float cy = 240-.5;
       static const float f  = 525;
-
       boost::multi_array<float, 3> uvmatrix(boost::extents[480][640][2]);
       boost::multi_array<float, 3>::index u;
       boost::multi_array<float, 3>::index v;
 
-      //set all element to zero
+      //set all elements to zero
       std::fill(uvmatrix.begin()->begin()->begin(), uvmatrix.end()->end()->end(), 0);
 
       for (int i = 0; i < input_->points.size (); i++)
@@ -85,11 +86,14 @@
           uvmatrix[u][v][1] = input_->points[i].z;
         }
       }
+
+      deinitCompute ();
+
       return uvmatrix;
     }
 
     template <typename PointInT, typename StateT> float
-    pcl::tracking::HistogramCoherence<PointInT, StateT>::computeCoherence (StateT &target)
+    pcl::tracking::HistogramCoherence<PointInT, StateT>::computeCoherence (const StateT& target)
     {
       /* TODO
       - source cluster should be a histogram vector, changing/weighted over time according to the confidence about the colormodel (could be a class variable that can be initialised (only calculate color model once and adapt if necessary) or reset?)
@@ -145,7 +149,7 @@
       std::vector <float> targetHistogram(361);
       PointCloudXYZRGBAtoXYZHSV (*cloud_cluster_target, *cloud_cluster_target_hsv);
 
-      pcl::HistogramStatistics <pcl::PointXYZHSV> obj (0, 360, 361, false, true); //TODO create object at class instantiation
+      pcl::HistogramStatistics<pcl::PointXYZHSV> obj (0, 360, 361, false, true); //TODO create object at class instantiation
       obj.computeHue (*cloud_cluster_target_hsv, targetHistogram);
 
       // TODO Use case structure to select the desired method to calculate the likelihood
