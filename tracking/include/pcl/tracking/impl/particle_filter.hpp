@@ -7,6 +7,7 @@
 #include <pcl/tracking/boost.h>
 #include <pcl/tracking/particle_filter.h>
 #include <pcl/tracking/histogram_coherence.h>
+#include <pcl/tracking/tracking.h>
 
 template <typename PointInT, typename StateT> bool
 pcl::tracking::ParticleFilterTracker<PointInT, StateT>::initCompute ()
@@ -276,7 +277,8 @@ pcl::tracking::ParticleFilterTracker<PointInT, StateT>::weight ()
 template <typename PointInT, typename StateT> void
 pcl::tracking::ParticleFilterTracker<PointInT, StateT>::weight_histogram ()
 {
-  pcl::tracking::HistogramCoherence<PointInT, StateT> hist_coh;
+  //pcl::tracking::HistogramCoherence<PointInT, StateT> hist_coh;
+  pcl::tracking::HistogramCoherence<pcl::PointXYZRGBA, pcl::tracking::ParticleXYZRPY> hist_coh;
 
   for (size_t i = 0; i < particles_->points.size (); i++)
   {

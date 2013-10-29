@@ -774,6 +774,13 @@ namespace pcl
 }
 
 #define PCL_STATE_POINT_TYPES \
+  (pcl::tracking::ParticleXYZRPY)
+#endif
+
+
+
+/*
+#define PCL_STATE_POINT_TYPES \
   (pcl::tracking::ParticleXYR) \
   (pcl::tracking::ParticleXYZRPY) \
   (pcl::tracking::ParticleXYZR) \
@@ -781,3 +788,4 @@ namespace pcl
   (pcl::tracking::ParticleXYRP)
 
 #endif  // 
+*/
