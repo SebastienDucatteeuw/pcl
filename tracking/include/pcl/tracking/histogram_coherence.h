@@ -40,7 +40,7 @@ namespace pcl
         setClusterHeight (int cluster_height) { clusterHeight_ = cluster_height; } //TODO only odd numbers -> check!
 
         inline void
-        setSourceHistogram (std::vector <float> histogram) { sourceHistogram_ = histogram; }
+        setSourceHistogram (const std::vector <float> &histogram) { sourceHistogram_ = histogram; }
 
         inline std::vector <float>
         getSourceHistogram () { return sourceHistogram_; }

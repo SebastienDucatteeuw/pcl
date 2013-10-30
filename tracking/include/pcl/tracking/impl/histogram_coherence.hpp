@@ -63,8 +63,6 @@
     template <typename PointInT, typename StateT> boost::multi_array<float, 3>
     pcl::tracking::HistogramCoherence<PointInT, StateT>::cloud2uvmatrix ()
     {
-      initCompute ();
-
       static const float cx = 320-.5;
       static const float cy = 240-.5;
       static const float f  = 525;
@@ -86,8 +84,6 @@
           uvmatrix[u][v][1] = input_->points[i].z;
         }
       }
-
-      deinitCompute ();
 
       return uvmatrix;
     }
@@ -153,7 +149,7 @@
       obj.computeHue (*cloud_cluster_target_hsv, targetHistogram);
 
       // TODO Use case structure to select the desired method to calculate the likelihood
-      return BhattacharyyaDistance(sourceHistogram_, targetHistogram);
+      return 1-BhattacharyyaDistance(sourceHistogram_, targetHistogram);
     }
 
 #define PCL_INSTANTIATE_HistogramCoherence(T,ST) template class PCL_EXPORTS pcl::tracking::HistogramCoherence<T,ST>;

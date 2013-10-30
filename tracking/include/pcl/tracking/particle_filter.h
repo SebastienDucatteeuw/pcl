@@ -6,6 +6,7 @@
 #include <pcl/tracking/coherence.h>
 #include <pcl/filters/passthrough.h>
 #include <pcl/octree/octree.h>
+#include <pcl/tracking/histogram_coherence.h>
 
 #include <Eigen/Dense>
 
@@ -58,6 +59,7 @@ namespace pcl
         , ref_ ()
         , particles_ ()
         , coherence_ ()
+        , histogramCoherence_ ()
         , step_noise_covariance_ ()
         , initial_noise_covariance_ ()
         , initial_noise_mean_ ()
@@ -119,6 +121,14 @@ namespace pcl
         /** \brief Get a pointer to a reference dataset to be tracked. */
         inline PointCloudInConstPtr const
         getReferenceCloud () { return ref_; }
+
+        /** \brief Set a pointer to the reference colorhistogram to be tracked. */
+        inline void
+        setReferenceHistogram (const std::vector <float> &ref_hist) { histogramCoherence_.setSourceHistogram (ref_hist); }
+
+        /** \brief Get a pointer to the reference colorhistogram to be tracked. */
+        inline std::vector <float> const
+        getReferenceHistogram () { return histogramCoherence_.getSourceHistogram (); }
 
         /** \brief Set the PointCloudCoherence as likelihood.
           * \param[in] coherence a pointer to PointCloudCoherence.
@@ -431,6 +441,9 @@ namespace pcl
 
         /** \brief A pointer to PointCloudCoherence. */
         CloudCoherencePtr coherence_;
+
+        /** \brief The HistogramCoherence object. Used to compute the coherence based on colorhistograms. */
+        pcl::tracking::HistogramCoherence<pcl::PointXYZRGBA, pcl::tracking::ParticleXYZRPY> histogramCoherence_;
 
         /** \brief The diagonal elements of covariance matrix of the step noise. the covariance matrix is used
           * at every resample method.
