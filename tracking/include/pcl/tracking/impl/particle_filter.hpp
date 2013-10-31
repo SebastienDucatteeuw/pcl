@@ -27,7 +27,7 @@ pcl::tracking::ParticleFilterTracker<PointInT, StateT>::initCompute ()
     }
   }
 
-  coherence_->setTargetCloud (input_);
+  //coherence_->setTargetCloud (input_);
 
   if (!change_detector_)
     change_detector_ = boost::shared_ptr<pcl::octree::OctreePointCloudChangeDetector<PointInT> >(new pcl::octree::OctreePointCloudChangeDetector<PointInT> (change_detector_resolution_));
@@ -276,11 +276,13 @@ pcl::tracking::ParticleFilterTracker<PointInT, StateT>::weight ()
 template <typename PointInT, typename StateT> void
 pcl::tracking::ParticleFilterTracker<PointInT, StateT>::weight_histogram ()
 {
-  for (size_t i = 0; i < particles_->points.size (); i++)
+  //histogramCoherence_.setInputCloud (input_);
   {
-    particles_->points[i].weight = histogramCoherence_.computeCoherence (particles_->points[i]);
+    for (size_t i = 0; i < particles_->points.size (); i++)
+    {
+      particles_->points[i].weight = histogramCoherence_.compute (particles_->points[i]);
+    }
   }
-
   normalizeWeight ();
 }
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

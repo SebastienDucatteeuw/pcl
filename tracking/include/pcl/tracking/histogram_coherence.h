@@ -16,7 +16,6 @@ namespace pcl
     class HistogramCoherence: public PCLBase<PointInT>
     {
       protected:
-        using PCLBase<PointInT>::initCompute;
         using PCLBase<PointInT>::deinitCompute;
 
       public:
@@ -33,6 +32,9 @@ namespace pcl
         }
 
       public:
+        float
+        compute (const StateT& target);
+
         inline void
         setClusterWidth (int cluster_width) { clusterWidth_  = cluster_width; } //TODO only odd numbers -> check!
 
@@ -63,6 +65,10 @@ namespace pcl
         int clusterWidth_;
         int clusterHeight_;
         std::vector <float> sourceHistogram_;
+
+      protected:
+        virtual bool
+        initCompute ();
     };
   }
 }

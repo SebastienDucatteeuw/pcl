@@ -5,7 +5,6 @@
 #include <pcl/tracking/histogram_coherence.h>
 #include <Eigen/Dense>
 #include <pcl/point_types_conversion.h>
-//#include <pcl/pcl_macros.h> // Include PCL macros such as PCL_ERROR, etc
 
     template <typename PointInT, typename StateT> float
     pcl::tracking::HistogramCoherence<PointInT, StateT>::BhattacharyyaDistance (std::vector <float> &hist1, std::vector <float> &hist2)
@@ -67,24 +66,21 @@
       static const float cy = 240-.5;
       static const float f  = 525;
       boost::multi_array<float, 3> uvmatrix(boost::extents[480][640][2]);
-      boost::multi_array<float, 3>::index u;
-      boost::multi_array<float, 3>::index v;
+      int u, v;
 
-      //set all elements to zero
-      std::fill(uvmatrix.begin()->begin()->begin(), uvmatrix.end()->end()->end(), 0);
-
-      for (int i = 0; i < input_->points.size (); i++)
+      for (int i = 1; i < input_->points.size (); i++)
       {
         u = (int) f*(input_->points[i].x/input_->points[i].z) + cx;
         v = (int) f*(input_->points[i].y/input_->points[i].z) + cy;
 
-        if ((input_->points[i].z < uvmatrix[u][v][1]) || (uvmatrix[u][v][0] == 0)) // save rgba value to points with zero rgba value or points with smaller z-values
+        std::cout << "Waarde van u: " << u << std::endl;
+
+        if ( ((u < 640) && (v < 480)) && ((input_->points[i].z < uvmatrix[v][u][1]) || (uvmatrix[v][u][0] == 0))) // save rgba value to points with zero rgba value or points with smaller z-values
         {
-          uvmatrix[u][v][0] = input_->points[i].rgba;
-          uvmatrix[u][v][1] = input_->points[i].z;
+          uvmatrix[v][u][0] = input_->points[i].rgba;
+          uvmatrix[v][u][1] = input_->points[i].z;
         }
       }
-
       return uvmatrix;
     }
 
@@ -106,8 +102,8 @@
       static const float cy = 240-.5;
       static const float f  = 525;
 
-      int target_cluster_u = f*(target.x/target.z) + cx;     // u coordinate of target center
-      int target_cluster_v = f*(target.y/target.z) + cy;     // v coordinate of target center
+      int target_cluster_u = (int) f*(target.x/target.z) + cx;     // u coordinate of target center
+      int target_cluster_v = (int) f*(target.y/target.z) + cy;     // v coordinate of target center
 
       // check if cluster fits in target matrix
       if (!( ((clusterWidth_-1)/2 <= target_cluster_u) || (target_cluster_u <= 640-(clusterWidth_-1)/2) ))
@@ -151,6 +147,40 @@
       // TODO Use case structure to select the desired method to calculate the likelihood
       return 1-BhattacharyyaDistance(sourceHistogram_, targetHistogram);
     }
+
+template <typename PointInT, typename StateT> bool
+pcl::tracking::HistogramCoherence<PointInT, StateT>::initCompute ()
+{
+  if (!PCLBase<PointInT>::initCompute ())
+  {
+    //PCL_ERROR ("[pcl::%s::initCompute] PCLBase::Init failed.\n", getClassName ().c_str ());
+    std::cout << "[pcl::HistogramCoherence::initCompute] PCLBase::Init failed." << std::endl;
+    return (false);
+  }
+
+  // If the dataset is empty, just return
+  if (input_->points.empty ())
+  {
+    //PCL_ERROR ("[pcl::%s::compute] input_ is empty!\n", getClassName ().c_str ());
+    std::cout << "[pcl::HistogramCoherence::initCompute] input_ is empty!" << std::endl;
+    // Cleanup
+    deinitCompute ();
+    return (false);
+  }
+
+  return (true);
+}
+
+template <typename PointInT, typename StateT> float
+pcl::tracking::HistogramCoherence<PointInT, StateT>::compute (const StateT& target)
+{
+  if (!initCompute ())
+    return 0;
+
+  float coherence = computeCoherence (target);
+  deinitCompute ();
+  return coherence;
+}
 
 #define PCL_INSTANTIATE_HistogramCoherence(T,ST) template class PCL_EXPORTS pcl::tracking::HistogramCoherence<T,ST>;
 
