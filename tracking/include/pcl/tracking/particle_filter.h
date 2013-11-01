@@ -443,7 +443,7 @@ namespace pcl
         CloudCoherencePtr coherence_;
 
         /** \brief The HistogramCoherence object. Used to compute the coherence based on colorhistograms. */
-        pcl::tracking::HistogramCoherence<pcl::PointXYZRGBA, pcl::tracking::ParticleXYZRPY> histogramCoherence_;
+        pcl::tracking::HistogramCoherence<PointInT, StateT> histogramCoherence_;
 
         /** \brief The diagonal elements of covariance matrix of the step noise. the covariance matrix is used
           * at every resample method.

@@ -177,9 +177,9 @@ pcl::tracking::HistogramCoherence<PointInT, StateT>::compute (const StateT& targ
   if (!initCompute ())
     return 0;
 
-  float coherence = computeCoherence (target);
-  deinitCompute ();
-  return coherence;
+  //float coherence = computeCoherence (target);
+  //deinitCompute ();
+  return 1; //coherence;
 }
 
 #define PCL_INSTANTIATE_HistogramCoherence(T,ST) template class PCL_EXPORTS pcl::tracking::HistogramCoherence<T,ST>;

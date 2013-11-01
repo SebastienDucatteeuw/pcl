@@ -276,7 +276,7 @@ pcl::tracking::ParticleFilterTracker<PointInT, StateT>::weight ()
 template <typename PointInT, typename StateT> void
 pcl::tracking::ParticleFilterTracker<PointInT, StateT>::weight_histogram ()
 {
-  //histogramCoherence_.setInputCloud (input_);
+  histogramCoherence_.setInputCloud (input_);
   {
     for (size_t i = 0; i < particles_->points.size (); i++)
     {

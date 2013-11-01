@@ -36,6 +36,7 @@
  */
 #include <pcl/tracking/impl/particle_filter.hpp>
 #include <pcl/tracking/impl/particle_filter_omp.hpp>
+#include <pcl/tracking/tracking.h>
 
 #ifndef PCL_NO_PRECOMPILE
 #include <pcl/impl/instantiate.hpp>

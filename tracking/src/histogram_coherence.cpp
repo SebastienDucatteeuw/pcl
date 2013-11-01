@@ -41,7 +41,9 @@
 #include <pcl/tracking/histogram_coherence.h>
 #include <pcl/tracking/impl/histogram_coherence.hpp>
 
-template class PCL_EXPORTS pcl::tracking::HistogramCoherence<pcl::PointXYZRGBA, pcl::tracking::ParticleXYZRPY>;
+//template class PCL_EXPORTS pcl::tracking::HistogramCoherence<pcl::PointXYZRGBA, pcl::tracking::ParticleXYZRPY>;
+PCL_INSTANTIATE_PRODUCT(HistogramCoherence, ((pcl::PointNormal) (pcl::PointXYZINormal) (pcl::PointXYZRGBNormal))(PCL_STATE_POINT_TYPES))
+PCL_INSTANTIATE_PRODUCT(HistogramCoherence, ((pcl::PointXYZ) (pcl::PointXYZI) (pcl::PointXYZRGBA) (pcl::PointXYZRGB) (pcl::InterestPoint) (pcl::PointWithRange) (pcl::PointWithViewpoint) (pcl::PointWithScale))(PCL_STATE_POINT_TYPES))
 
 /*
 #ifndef PCL_NO_PRECOMPILE
