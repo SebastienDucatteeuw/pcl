@@ -11,8 +11,7 @@ PCL_ADD_DOC(${SUBSYS_NAME})
 if(build)
     set(srcs 
         src/tracking.cpp
-        src/particle_filter.cpp
-        src/kld_adaptive_particle_filter.cpp
+        src/particle_filter_hist.cpp
         src/coherence.cpp
         src/histogram_coherence.cpp
         )
@@ -28,10 +27,7 @@ if(build)
         include/pcl/${SUBSYS_NAME}/histogram_coherence.h
         include/pcl/${SUBSYS_NAME}/hsv_color_coherence.h
         include/pcl/${SUBSYS_NAME}/normal_coherence.h
-        include/pcl/${SUBSYS_NAME}/particle_filter.h
-        include/pcl/${SUBSYS_NAME}/particle_filter_omp.h
-        include/pcl/${SUBSYS_NAME}/kld_adaptive_particle_filter.h
-        include/pcl/${SUBSYS_NAME}/kld_adaptive_particle_filter_omp.h
+        include/pcl/${SUBSYS_NAME}/particle_filter_hist.h
         )
 
     set(impl_incs 
@@ -44,10 +40,7 @@ if(build)
         include/pcl/${SUBSYS_NAME}/impl/histogram_coherence.hpp
         include/pcl/${SUBSYS_NAME}/impl/hsv_color_coherence.hpp
         include/pcl/${SUBSYS_NAME}/impl/normal_coherence.hpp
-        include/pcl/${SUBSYS_NAME}/impl/particle_filter.hpp
-        include/pcl/${SUBSYS_NAME}/impl/particle_filter_omp.hpp
-        include/pcl/${SUBSYS_NAME}/impl/kld_adaptive_particle_filter.hpp
-        include/pcl/${SUBSYS_NAME}/impl/kld_adaptive_particle_filter_omp.hpp
+        include/pcl/${SUBSYS_NAME}/impl/particle_filter_hist.hpp
         )
 
     set(LIB_NAME pcl_${SUBSYS_NAME})

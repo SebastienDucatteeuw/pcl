@@ -5,6 +5,7 @@
 #include <pcl/tracking/histogram_coherence.h>
 #include <Eigen/Dense>
 #include <pcl/point_types_conversion.h>
+#include <pcl/search/organized.h>
 
     template <typename PointInT, typename StateT> float
     pcl::tracking::HistogramCoherence<PointInT, StateT>::BhattacharyyaDistance (std::vector <float> &hist1, std::vector <float> &hist2)
@@ -59,93 +60,60 @@
       }
     }
 
-    template <typename PointInT, typename StateT> boost::multi_array<float, 3>
-    pcl::tracking::HistogramCoherence<PointInT, StateT>::cloud2uvmatrix ()
-    {
-      static const float cx = 320-.5;
-      static const float cy = 240-.5;
-      static const float f  = 525;
-      boost::multi_array<float, 3> uvmatrix(boost::extents[480][640][2]);
-      int u, v;
-
-      for (int i = 1; i < input_->points.size (); i++)
-      {
-        u = (int) f*(input_->points[i].x/input_->points[i].z) + cx;
-        v = (int) f*(input_->points[i].y/input_->points[i].z) + cy;
-
-        std::cout << "Waarde van u: " << u << std::endl;
-
-        if ( ((u < 640) && (v < 480)) && ((input_->points[i].z < uvmatrix[v][u][1]) || (uvmatrix[v][u][0] == 0))) // save rgba value to points with zero rgba value or points with smaller z-values
-        {
-          uvmatrix[v][u][0] = input_->points[i].rgba;
-          uvmatrix[v][u][1] = input_->points[i].z;
-        }
-      }
-      return uvmatrix;
-    }
-
     template <typename PointInT, typename StateT> float
     pcl::tracking::HistogramCoherence<PointInT, StateT>::computeCoherence (const StateT& target)
     {
-      /* TODO
-      - source cluster should be a histogram vector, changing/weighted over time according to the confidence about the colormodel (could be a class variable that can be initialised (only calculate color model once and adapt if necessary) or reset?)
-      - target cluster should be the target_input_ cloud from the coherence_ obj.
-      */
-
       pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_cluster_target (new pcl::PointCloud<pcl::PointXYZRGBA>);
       pcl::PointCloud<pcl::PointXYZHSV>::Ptr cloud_cluster_target_hsv (new pcl::PointCloud<pcl::PointXYZHSV>);
+      float weight;
 
-      // convert target cloud to uvrgba matrix using cloud2uvmatrix
-      boost::multi_array<float, 3> target_uvmatrix = pcl::tracking::HistogramCoherence<PointInT, StateT>::cloud2uvmatrix ();
+      //search points in radius around target
+      pcl::PointXYZRGBA center;
+      center.x = target.x;
+      center.y = target.y;
+      center.z = target.z;
 
-      static const float cx = 320-.5;
-      static const float cy = 240-.5;
-      static const float f  = 525;
+      std::cout << "x: " << center.x << std::endl;
+      std::cout << "y: " << center.y << std::endl;
+      std::cout << "z: " << center.z << std::endl;
 
-      int target_cluster_u = (int) f*(target.x/target.z) + cx;     // u coordinate of target center
-      int target_cluster_v = (int) f*(target.y/target.z) + cy;     // v coordinate of target center
+      pcl::search::OrganizedNeighbor<PointInT> organizedNeighborSearch;
+      organizedNeighborSearch.setInputCloud(input_);
+      if (!organizedNeighborSearch.isValid ())
+        std::cout << "Error: Input is not organized or from projective device" << std::endl;
 
-      // check if cluster fits in target matrix
-      if (!( ((clusterWidth_-1)/2 <= target_cluster_u) || (target_cluster_u <= 640-(clusterWidth_-1)/2) ))
+      double radius = 0.1;
+
+      std::vector<int> searchIndices;
+      std::vector<float> searchSquaredDistances;
+      searchIndices.clear ();
+      searchSquaredDistances.clear ();
+
+      organizedNeighborSearch.radiusSearch (center, radius, searchIndices, searchSquaredDistances);
+      std::cout << "aantal gevonden puntjes binnen radius: " << searchIndices.size () << std::endl;
+
+      if (searchIndices.size () > 0)
       {
-        //PCL_ERROR ("Invalid center u-coordinate cluster");
-        std::cout << "Invalid center u-coordinate cluster" << std::endl;
-      }
-
-      if (!( ((clusterHeight_-1)/2 <= target_cluster_v) || (target_cluster_v <= 480-(clusterHeight_-1)/2) ))
-      {
-        //PCL_ERROR ("Invalid center v-coordinate cluster");
-        std::cout << "Invalid center v-coordinate cluster" << std::endl;
-      }
-
-      // Set border size
-      int u_border = (clusterWidth_ - 1)/2;
-      int v_border = (clusterHeight_ - 1)/2;
-
-      // Make target cluster
-      cloud_cluster_target->width = clusterWidth_;
-      cloud_cluster_target->height = clusterHeight_;
-      cloud_cluster_target->points.resize (clusterWidth_ * clusterHeight_);
-
-      int i = 0;
-      for (int row = target_cluster_v - v_border; row <= target_cluster_v + v_border; row++)
-      {
-        for (int column = target_cluster_u - u_border; column <= target_cluster_u + u_border; column++)
+        for (int i = 0; i < searchIndices.size (); ++i)
         {
-          cloud_cluster_target->points[i].rgba = target_uvmatrix[row][column][0];
-          i++;
+          cloud_cluster_target->points.push_back (input_->points[searchIndices[i]]);
         }
+
+        // Calculate histogram distance
+        std::vector <float> targetHistogram(361);
+        PointCloudXYZRGBAtoXYZHSV (*cloud_cluster_target, *cloud_cluster_target_hsv);
+
+        pcl::HistogramStatistics<pcl::PointXYZHSV> obj (0, 360, 361, false, true); //TODO create object at class instantiation
+        obj.computeHue (*cloud_cluster_target_hsv, targetHistogram);
+
+        // TODO Use case structure to select the desired method to calculate the likelihood
+        weight = 1-BhattacharyyaDistance(sourceHistogram_, targetHistogram);
       }
+      else
+        weight = 0;
 
-      // Calculate histogram distance
-      std::vector <float> targetHistogram(361);
-      PointCloudXYZRGBAtoXYZHSV (*cloud_cluster_target, *cloud_cluster_target_hsv);
-
-      pcl::HistogramStatistics<pcl::PointXYZHSV> obj (0, 360, 361, false, true); //TODO create object at class instantiation
-      obj.computeHue (*cloud_cluster_target_hsv, targetHistogram);
-
-      // TODO Use case structure to select the desired method to calculate the likelihood
-      return 1-BhattacharyyaDistance(sourceHistogram_, targetHistogram);
+      //std::cout << "Weight: " << weight << std::endl;
+      return weight;
     }
 
 template <typename PointInT, typename StateT> bool
@@ -177,9 +145,9 @@ pcl::tracking::HistogramCoherence<PointInT, StateT>::compute (const StateT& targ
   if (!initCompute ())
     return 0;
 
-  //float coherence = computeCoherence (target);
-  //deinitCompute ();
-  return 1; //coherence;
+  float coherence = computeCoherence (target);
+  deinitCompute ();
+  return coherence;
 }
 
 #define PCL_INSTANTIATE_HistogramCoherence(T,ST) template class PCL_EXPORTS pcl::tracking::HistogramCoherence<T,ST>;
