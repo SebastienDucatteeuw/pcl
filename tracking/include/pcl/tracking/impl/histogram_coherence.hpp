@@ -71,7 +71,7 @@
       if (!pcl::isFinite (target))
       {
         std::cout << "Target is infinite." << std::endl;
-        return 0.1;
+        return 0;
       }
 
       //search points in radius around target
@@ -98,7 +98,7 @@
       if (!organizedNeighborSearch.isValid ())
         std::cout << "Error: Input is not organized or from projective device" << std::endl;
 
-      double radius = 0.1;
+      double radius = 0.05;
 
       std::vector<int> searchIndices;
       std::vector<float> searchSquaredDistances;
@@ -106,7 +106,7 @@
       searchSquaredDistances.clear ();
 
       organizedNeighborSearch.radiusSearch (center, radius, searchIndices, searchSquaredDistances);
-      std::cout << "aantal gevonden puntjes binnen radius: " << searchIndices.size () << std::endl;
+      //std::cout << "aantal gevonden puntjes binnen radius: " << searchIndices.size () << std::endl;
 
       if (searchIndices.size () > 0)
       {
@@ -128,7 +128,7 @@
       else
         weight = 0;
 
-      std::cout << "Weight: " << weight << std::endl;
+      //std::cout << "Weight: " << weight << std::endl;
       return weight;
     }
 

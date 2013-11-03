@@ -58,6 +58,7 @@ namespace pcl
         , min_indices_ (1)
         , ref_ ()
         , particles_ ()
+        , particles_prev_ ()
         , coherence_ ()
         , histogramCoherence_ ()
         , step_noise_covariance_ ()
@@ -308,62 +309,17 @@ namespace pcl
         {
           if (particles_)
             particles_->points.clear ();
+          if (particles_prev_)
+            particles_prev_->points.clear ();
         }
 
       protected:
-
-        /** \brief Compute the parameters for the bounding box of hypothesis pointclouds.
-          * \param[out] x_min the minimum value of x axis.
-          * \param[out] x_max the maximum value of x axis.
-          * \param[out] y_min the minimum value of y axis.
-          * \param[out] y_max the maximum value of y axis.
-          * \param[out] z_min the minimum value of z axis.
-          * \param[out] z_max the maximum value of z axis.
-          */
-        void calcBoundingBox (double &x_min, double &x_max,
-                              double &y_min, double &y_max,
-                              double &z_min, double &z_max);
-
-        /** \brief Crop the pointcloud by the bounding box calculated from hypothesis and the reference pointcloud.
-          * \param[in] cloud a pointer to pointcloud to be cropped.
-          * \param[out] output a pointer to be assigned the cropped pointcloud.
-          */
-        void cropInputPointCloud (const PointCloudInConstPtr &cloud, PointCloudIn &output);
-
-        /** \brief Compute a reference pointcloud transformed to the pose that hypothesis represents.
-          * \param[in] hypothesis a particle which represents a hypothesis.
-          * \param[in] indices the indices which should be taken into account.
-          * \param[out] cloud the resultant point cloud model dataset which is transformed to hypothesis.
-         **/
-        //void computeTransformedPointCloud (const StateT& hypothesis,
-        //                                   std::vector<int>& indices,
-        //                                   PointCloudIn &cloud);
-
-        /** \brief Compute a reference pointcloud transformed to the pose that hypothesis represents and calculate 
-          * indices taking occlusion into account.
-          * \param[in] hypothesis a particle which represents a hypothesis.
-          * \param[in] indices the indices which should be taken into account.
-          * \param[out] cloud the resultant point cloud model dataset which is transformed to hypothesis.
-          **/
-        //void computeTransformedPointCloudWithNormal (const StateT& hypothesis,
-        //                                             std::vector<int>& indices,
-        //                                             PointCloudIn &cloud);
-
-        /** \brief Compute a reference pointcloud transformed to the pose that hypothesis represents and calculate 
-          * indices without taking occlusion into account.
-          * \param[in] hypothesis a particle which represents a hypothesis.
-          * \param[out] cloud the resultant point cloud model dataset which is transformed to hypothesis.
-         **/
-        //void computeTransformedPointCloudWithoutNormal (const StateT& hypothesis,
-        //                                                PointCloudIn &cloud);
-
         /** \brief This method should get called before starting the actual computation. */
         virtual bool initCompute ();
 
-        /** \brief Weighting phase of particle filter method. Calculate the likelihood of all of the particles and set the weights. */
-        //virtual void weight ();
-
-        /** \brief Weighting phase of particle filter method. Calculate the likelihood of all particles based on histogram coherence and set the weights. */
+        /** \brief Weighting phase of particle filter method.
+          * Calculate the likelihood of all particles based on histogram coherence and set the weights.
+          */
         virtual void weight_histogram ();
 
         /** \brief Resampling phase of particle filter method. Sampling the particles according to the weights calculated 
@@ -371,8 +327,7 @@ namespace pcl
           */
         virtual void resample ();
 
-        /** \brief Calculate the weighted mean of the particles and set it as the result. */
-        virtual void update ();
+        virtual void predict ();
 
         /** \brief Normalize the weights of all the particels. */
         virtual void normalizeWeight ();
@@ -382,44 +337,6 @@ namespace pcl
 
         /** \brief Track the pointcloud using particle filter method. */
         virtual void computeTracking ();
-
-        /** \brief Implementation of "sample with replacement" using Walker's alias method.
-            about Walker's alias method, you can check the paper below:
-            @article{355749,
-             author = {Walker, Alastair J.},
-             title = {An Efficient Method for Generating Discrete
-             Random Variables with General Distributions},
-             journal = {ACM Trans. Math. Softw.},
-             volume = {3},
-             number = {3},
-             year = {1977},
-             issn = {0098-3500},
-             pages = {253--256},
-             doi = {http://doi.acm.org/10.1145/355744.355749},
-             publisher = {ACM},
-             address = {New York, NY, USA},
-             }
-             \param a an alias table, which generated by genAliasTable.
-             \param q a table of weight, which generated by genAliasTable.
-         */
-        int sampleWithReplacement (const std::vector<int>& a, const std::vector<double>& q);
-
-        /** \brief Generate the tables for walker's alias method. */
-        void genAliasTable (std::vector<int> &a, std::vector<double> &q, const PointCloudStateConstPtr &particles);
-
-        /** \brief Resampling the particle with replacement. */
-        void 
-        resampleWithReplacement ();
-
-        /** \brief Resampling the particle in deterministic way. */
-        void 
-        resampleDeterministic ();
-
-        /** \brief Run change detection and return true if there is a change.
-          * \param[in] input a pointer to the input pointcloud.
-          */
-        bool 
-        testChangeDetection (const PointCloudInConstPtr &input);
 
         /** \brief The number of iteration of particlefilter. */
         int iteration_num_;
@@ -438,6 +355,9 @@ namespace pcl
 
         /** \brief A pointer to the particles  */
         PointCloudStatePtr particles_;
+
+        /** \brief A pointer to the particles at t-1 */
+        PointCloudStatePtr particles_prev_;
 
         /** \brief A pointer to PointCloudCoherence. */
         CloudCoherencePtr coherence_;
