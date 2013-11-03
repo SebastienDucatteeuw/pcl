@@ -208,9 +208,12 @@ namespace pcl {
 
       void normalize ()
       {
-        for (int i = 0; i < dim_; ++i)
+        if (counter_ != 0)
         {
-          bins_[i] /= counter_;
+          for (int i = 0; i < dim_; ++i)
+          {
+            bins_[i] /= counter_;
+          }
         }
       }
 
