@@ -6,6 +6,7 @@
 #include <Eigen/Dense>
 #include <pcl/point_types_conversion.h>
 #include <pcl/search/organized.h>
+#include <cmath>
 
     template <typename PointInT, typename StateT> float
     pcl::tracking::HistogramCoherence<PointInT, StateT>::BhattacharyyaDistance (std::vector <float> &hist1, std::vector <float> &hist2)
@@ -67,17 +68,32 @@
       pcl::PointCloud<pcl::PointXYZHSV>::Ptr cloud_cluster_target_hsv (new pcl::PointCloud<pcl::PointXYZHSV>);
       float weight;
 
+      if (!pcl::isFinite (target))
+      {
+        std::cout << "Target is infinite." << std::endl;
+        return 0.1;
+      }
+
       //search points in radius around target
       pcl::PointXYZRGBA center;
       center.x = target.x;
       center.y = target.y;
       center.z = target.z;
 
-      std::cout << "x: " << center.x << std::endl;
-      std::cout << "y: " << center.y << std::endl;
-      std::cout << "z: " << center.z << std::endl;
+/*--- Bruteforce
+      double distance = 0;
+      for (int i = 0; i < input_->points.size (); i++)
+      {
+        distance = std::sqrt(std::pow(input_->points[i].x - center.x, 2) + std::pow(input_->points[i].y - center.y, 2) + std::pow(input_->points[i].z - center.z, 2));
+        if (distance < 1.2)
+        {
+          cloud_cluster_target->points.push_back (input_->points[i]);
+        }
+      }
+      std::cout << "aantal gevonden puntjes binnen radius: " << cloud_cluster_target->points.size () << std::endl;
+*/
 
-      pcl::search::OrganizedNeighbor<PointInT> organizedNeighborSearch;
+      pcl::search::OrganizedNeighbor<PointInT> organizedNeighborSearch (false, 1e-4f, 5);
       organizedNeighborSearch.setInputCloud(input_);
       if (!organizedNeighborSearch.isValid ())
         std::cout << "Error: Input is not organized or from projective device" << std::endl;
@@ -112,7 +128,7 @@
       else
         weight = 0;
 
-      //std::cout << "Weight: " << weight << std::endl;
+      std::cout << "Weight: " << weight << std::endl;
       return weight;
     }
 

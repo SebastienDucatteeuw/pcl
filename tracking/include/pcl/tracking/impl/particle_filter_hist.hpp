@@ -274,13 +274,11 @@ pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::weight ()
 template <typename PointInT, typename StateT> void
 pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::weight_histogram ()
 {
-  //std::cout << "de waarde van input_[20]: " <<  input_->points[20].x << std::endl;
   histogramCoherence_.setInputCloud (input_);
   {
     for (size_t i = 0; i < particles_->points.size (); i++)
     {
       particles_->points[i].weight = histogramCoherence_.compute (particles_->points[i]);
-      //std::cout << "Het gewicht van de particles: " << particles_->points[i].weight << std::endl;
     }
   }
   normalizeWeight ();
@@ -402,7 +400,7 @@ pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::update ()
 template <typename PointInT, typename StateT> void
 pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::computeTracking ()
 {
-  
+  changed_ = true;
   for (int i = 0; i < iteration_num_; i++)
   {
     if (changed_)
