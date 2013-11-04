@@ -99,34 +99,48 @@ template <typename PointInT, typename StateT> void
 pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::predict ()
 {
   const std::vector<double> zero_mean (StateT::stateDimension (), 0.0);
-
-  // memoize the original list of particles
   PointCloudState origparticles = *particles_;
   particles_->points.clear ();
   // the first particle, it is a just copy of the maximum result
   //StateT p = representative_state_;
   //particles_->points.push_back (p);
 
-  for (int i = 0; i < origparticles.points.size (); i++)
+  // constant velocity model
+  float dt = ((float)t_ - (float)tt_)/CLOCKS_PER_SEC;
+  if (dt > 0) // false if t-2 not yet available
   {
-    StateT p = origparticles.points[i];
-    // add noise using gaussian
-    p.sample (zero_mean, step_noise_covariance_);
-    particles_->points.push_back (p);
+    for (int i = 0; i < origparticles.points.size (); i++)
+    {
+      StateT p = origparticles.points[i];
+      // calulate speeds vx, vy, vz save in RPY
+      p.roll  = (particles_t_.points[i].x - particles_tt_.points[i].x) / dt;
+      p.pitch = (particles_t_.points[i].y - particles_tt_.points[i].y) / dt;
+      p.yaw   = (particles_t_.points[i].z - particles_tt_.points[i].z) / dt;
+      // add noise using gaussian
+      p.sample (zero_mean, step_noise_covariance_);
+      // add motion
+      p.x = p.x + (dt * p.roll);
+      p.y = p.y + (dt * p.pitch);
+      p.z = p.z + (dt * p.yaw);
+      particles_->points.push_back (p);
+    }
+  }
+  else
+  {
+    // constant position model
+    for (int i = 0; i < origparticles.points.size (); i++)
+    {
+      StateT p = origparticles.points[i];
+      // add noise using gaussian
+      p.sample (zero_mean, step_noise_covariance_);
+      particles_->points.push_back (p);
+    }
   }
 }
 
 template <typename PointInT, typename StateT> void
 pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::resample ()
 {
-/*
-  std::cout << "voor resampled points: " << std::endl;
-
-  for (int i = 0; i < particles_->points.size () ; i++)
-  {
-    std::cout << particles_->points[i].weight << std::endl;
-  }
-*/
   // Low Variance Sampler (p110 - Probablistic Robotics)
   PointCloudState origparticles = *particles_;
   particles_->points.clear ();
@@ -147,24 +161,34 @@ pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::resample ()
     origparticles.points[i].weight = 1.0f / static_cast<float> (particle_num_); //set new samples with equal weights
     particles_->points.push_back (origparticles.points[i]);
   }
-/*
-  std::cout << "na resampled points: " << std::endl;
-
-  for (int i = 0; i < particles_->points.size () ; i++)
-  {
-    std::cout << particles_->points[i].weight << std::endl;
-  }
-*/
 }
 
 template <typename PointInT, typename StateT> void
 pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::computeTracking ()
 {
+  tt_ = t_;
+  t_  = clock();
+  particles_tt_ = particles_t_;
+  particles_t_ = *particles_;
+/*
+  for (int i = 0; i < particles_->points.size (); i++ )
+    std::cout << "particles_: " << particles_->points[i].weight << std::endl;
+  for (int i = 0; i < particles_t_.points.size (); i++ )
+    std::cout << "particles_t_: " << particles_t_.points[i].weight << std::endl;
+*/
+
   for (int i = 0; i < iteration_num_; i++)
   {
     predict ();
     weight_histogram (); // likelihood is called in it
     resample ();
+  }
+
+  representative_state_.zero ();
+  for ( size_t i = 0; i < particles_->points.size (); i++)
+  {
+    StateT p = particles_->points[i];
+    representative_state_ = representative_state_ + p * p.weight;
   }
 }
 /*

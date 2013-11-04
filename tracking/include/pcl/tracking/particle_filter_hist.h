@@ -7,6 +7,7 @@
 #include <pcl/filters/passthrough.h>
 #include <pcl/octree/octree.h>
 #include <pcl/tracking/histogram_coherence.h>
+#include <time.h>
 
 #include <Eigen/Dense>
 
@@ -58,7 +59,8 @@ namespace pcl
         , min_indices_ (1)
         , ref_ ()
         , particles_ ()
-        , particles_prev_ ()
+        , particles_t_ ()
+        , particles_tt_ ()
         , coherence_ ()
         , histogramCoherence_ ()
         , step_noise_covariance_ ()
@@ -309,9 +311,10 @@ namespace pcl
         {
           if (particles_)
             particles_->points.clear ();
-          if (particles_prev_)
-            particles_prev_->points.clear ();
         }
+
+        /** \brief The result of tracking. */ //TODO was protected...
+        StateT representative_state_;
 
       protected:
         /** \brief This method should get called before starting the actual computation. */
@@ -357,7 +360,10 @@ namespace pcl
         PointCloudStatePtr particles_;
 
         /** \brief A pointer to the particles at t-1 */
-        PointCloudStatePtr particles_prev_;
+        PointCloudState particles_t_;
+
+        /** \brief A pointer to the particles at t-2 */
+        PointCloudState particles_tt_;
 
         /** \brief A pointer to PointCloudCoherence. */
         CloudCoherencePtr coherence_;
@@ -386,9 +392,6 @@ namespace pcl
 
         /** \brief The weight to be used in normalization of the weights of the particles. */
         double alpha_;
-
-        /** \brief The result of tracking. */
-        StateT representative_state_;
 
         /** \brief An affine transformation from the world coordinates frame to the origin of the particles. */
         Eigen::Affine3f trans_;
@@ -432,6 +435,10 @@ namespace pcl
 
         /** \brief The flag which will be true if using change detection. */
         bool use_change_detector_;
+
+        clock_t t_;
+
+        clock_t tt_;
     };
   }
 }
