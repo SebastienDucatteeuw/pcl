@@ -107,6 +107,7 @@ pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::predict ()
 
   // constant velocity model
   float dt = ((float)t_ - (float)tt_)/CLOCKS_PER_SEC;
+  //dt = 0; //uncomment to use const pos model
   if (dt > 0) // false if t-2 not yet available
   {
     for (int i = 0; i < origparticles.points.size (); i++)
@@ -119,9 +120,9 @@ pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::predict ()
       // add noise using gaussian
       p.sample (zero_mean, step_noise_covariance_);
       // add motion
-      p.x = p.x + (dt * p.roll);
-      p.y = p.y + (dt * p.pitch);
-      p.z = p.z + (dt * p.yaw);
+      p.x = p.x + (dt * motion_ratio_ * p.roll);
+      p.y = p.y + (dt * motion_ratio_ * p.pitch);
+      p.z = p.z + (dt * motion_ratio_ * p.yaw);
       particles_->points.push_back (p);
     }
   }
