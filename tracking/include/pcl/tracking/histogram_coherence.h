@@ -22,30 +22,33 @@ namespace pcl
         using PCLBase<PointInT>::indices_;
         using PCLBase<PointInT>::input_;
 
-      public:
         HistogramCoherence ()
-        : clusterWidth_  (51)
-        , clusterHeight_ (51)
-        , sourceHistogram_ (361)
+        : cluster_radius_  (0.05)
+        , reference_histogram_ (361)
+        , target_histogram_ (361)
+        , update_reference_histogram_ (false)
+        , update_threshold_ (0.6)
         {
-          std::fill(sourceHistogram_.begin(), sourceHistogram_.end(), 0);
+          std::fill(reference_histogram_.begin(), reference_histogram_.end(), 0);
         }
 
-      public:
         float
         compute (const StateT& target);
 
         inline void
-        setClusterWidth (int cluster_width) { clusterWidth_  = cluster_width; } //TODO only odd numbers -> check!
+        setClusterRadius (int cluster_radius) { cluster_radius_  = cluster_radius; }
 
         inline void
-        setClusterHeight (int cluster_height) { clusterHeight_ = cluster_height; } //TODO only odd numbers -> check!
-
-        inline void
-        setSourceHistogram (const std::vector <float> &histogram) { sourceHistogram_ = histogram; }
+        setReferenceHistogram (const std::vector <float> &histogram) { reference_histogram_ = histogram; }
 
         inline std::vector <float>
-        getSourceHistogram () { return sourceHistogram_; }
+        getReferenceHistogram () { return reference_histogram_; }
+
+        inline void
+        setUpdateReferenceHistogram (bool status) { update_reference_histogram_ = status; }
+
+        inline void
+        setUpdateThreshold (float threshold) { update_threshold_ = threshold; }
 
         /**
           * @brief calculates the BhattacharyyaDistance
@@ -56,19 +59,19 @@ namespace pcl
         float
         ChiSquaredDistance (std::vector <float> &hist1, std::vector <float> &hist2);
 
-        boost::multi_array<float, 3>
-        cloud2uvmatrix ();
-
         float
         computeCoherence (const StateT& target);
-
-        int clusterWidth_;
-        int clusterHeight_;
-        std::vector <float> sourceHistogram_;
 
       protected:
         virtual bool
         initCompute ();
+
+      private:
+        float cluster_radius_;
+        std::vector <float> reference_histogram_;
+        std::vector <float> target_histogram_;
+        bool update_reference_histogram_;
+        float update_threshold_;
     };
   }
 }

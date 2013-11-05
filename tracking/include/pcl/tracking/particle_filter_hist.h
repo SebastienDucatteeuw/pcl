@@ -13,7 +13,6 @@
 
 namespace pcl
 {
-
   namespace tracking
   {
     /** \brief @b ParticleFilterTracker tracks the PointCloud which is given by
@@ -127,11 +126,11 @@ namespace pcl
 
         /** \brief Set a pointer to the reference colorhistogram to be tracked. */
         inline void
-        setReferenceHistogram (const std::vector <float> &ref_hist) { histogramCoherence_.setSourceHistogram (ref_hist); }
+        setReferenceHistogram (const std::vector <float> &ref_hist) { histogramCoherence_.setReferenceHistogram (ref_hist); }
 
         /** \brief Get a pointer to the reference colorhistogram to be tracked. */
         inline std::vector <float> const
-        getReferenceHistogram () { return histogramCoherence_.getSourceHistogram (); }
+        getReferenceHistogram () { return histogramCoherence_.getReferenceHistogram (); }
 
         /** \brief Set the PointCloudCoherence as likelihood.
           * \param[in] coherence a pointer to PointCloudCoherence.
@@ -313,8 +312,8 @@ namespace pcl
             particles_->points.clear ();
         }
 
-        /** \brief The result of tracking. */ //TODO was protected...
-        StateT representative_state_;
+        /** \brief Get the result of tracking. */
+        inline StateT getRepresentativeState () { return representative_state_; }
 
       protected:
         /** \brief This method should get called before starting the actual computation. */
@@ -323,7 +322,7 @@ namespace pcl
         /** \brief Weighting phase of particle filter method.
           * Calculate the likelihood of all particles based on histogram coherence and set the weights.
           */
-        virtual void weight_histogram ();
+        virtual void weight ();
 
         /** \brief Resampling phase of particle filter method. Sampling the particles according to the weights calculated 
           * in weight method. In particular, "sample with replacement" is archieved by walker's alias method.
@@ -435,6 +434,9 @@ namespace pcl
 
         /** \brief The flag which will be true if using change detection. */
         bool use_change_detector_;
+
+        /** \brief The result of tracking. */
+        StateT representative_state_;
 
         clock_t t_;
 

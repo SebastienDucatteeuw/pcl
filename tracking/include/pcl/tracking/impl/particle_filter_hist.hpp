@@ -82,7 +82,7 @@ pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::normalizeWeight ()
 }
 
 template <typename PointInT, typename StateT> void
-pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::weight_histogram ()
+pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::weight ()
 {
   histogramCoherence_.setInputCloud (input_);
   {
@@ -171,26 +171,25 @@ pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::computeTracking ()
   t_  = clock();
   particles_tt_ = particles_t_;
   particles_t_ = *particles_;
-/*
-  for (int i = 0; i < particles_->points.size (); i++ )
-    std::cout << "particles_: " << particles_->points[i].weight << std::endl;
-  for (int i = 0; i < particles_t_.points.size (); i++ )
-    std::cout << "particles_t_: " << particles_t_.points[i].weight << std::endl;
-*/
 
-  for (int i = 0; i < iteration_num_; i++)
-  {
-    predict ();
-    weight_histogram (); // likelihood is called in it
-    resample ();
-  }
+  // PF
+  predict ();
+  weight (); // likelihood is called in it
+  resample ();
 
+  // PF calculate result
   representative_state_.zero ();
   for ( size_t i = 0; i < particles_->points.size (); i++)
   {
     StateT p = particles_->points[i];
     representative_state_ = representative_state_ + p * p.weight;
   }
+
+  // update colormodel
+  histogramCoherence_.setInputCloud (input_);
+  histogramCoherence_.setUpdateReferenceHistogram (true);
+  histogramCoherence_.compute (representative_state_);
+  histogramCoherence_.setUpdateReferenceHistogram (false);
 }
 /*
 prediction step                                         (proposal via motion model + noise)

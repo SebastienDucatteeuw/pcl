@@ -98,14 +98,12 @@
       if (!organizedNeighborSearch.isValid ())
         std::cout << "Error: Input is not organized or from projective device" << std::endl;
 
-      double radius = 0.05;
-
       std::vector<int> searchIndices;
       std::vector<float> searchSquaredDistances;
       searchIndices.clear ();
       searchSquaredDistances.clear ();
 
-      organizedNeighborSearch.radiusSearch (center, radius, searchIndices, searchSquaredDistances);
+      organizedNeighborSearch.radiusSearch (center, cluster_radius_, searchIndices, searchSquaredDistances);
       //std::cout << "aantal gevonden puntjes binnen radius: " << searchIndices.size () << std::endl;
 
       if (searchIndices.size () > 0)
@@ -116,19 +114,23 @@
         }
 
         // Calculate histogram distance
-        std::vector <float> targetHistogram(361);
         PointCloudXYZRGBAtoXYZHSV (*cloud_cluster_target, *cloud_cluster_target_hsv);
 
         pcl::HistogramStatistics<pcl::PointXYZHSV> obj (0, 360, 361, false, true); //TODO create object at class instantiation
-        obj.computeHue (*cloud_cluster_target_hsv, targetHistogram);
+        obj.computeHue (*cloud_cluster_target_hsv, target_histogram_);
 
         // TODO Use case structure to select the desired method to calculate the likelihood
-        weight = 1-BhattacharyyaDistance(sourceHistogram_, targetHistogram);
+        weight = 1-BhattacharyyaDistance(reference_histogram_, target_histogram_);
       }
       else
         weight = 0;
 
-      //std::cout << "Weight: " << weight << std::endl;
+      if (update_reference_histogram_ && (weight >= update_threshold_))
+      {
+        reference_histogram_ = target_histogram_;
+        std::cout << "Color model updated." << std::endl;
+      }
+
       return weight;
     }
 
