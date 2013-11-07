@@ -45,6 +45,7 @@ pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::initParticles (bool 
     representative_state_.zero ();
     StateT offset = StateT::toState (trans_);
     representative_state_ = offset;
+    representative_state_.roll = 0; representative_state_.pitch = 0; representative_state_.yaw = 0; //set speed in x direction to zero (nonzero because of reasons)
     representative_state_.weight = 1.0f / static_cast<float> (particle_num_);
   }
 
@@ -101,12 +102,94 @@ pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::predict ()
   const std::vector<double> zero_mean (StateT::stateDimension (), 0.0);
   PointCloudState origparticles = *particles_;
   particles_->points.clear ();
-  // the first particle, it is a just copy of the maximum result
-  //StateT p = representative_state_;
-  //particles_->points.push_back (p);
+  float dt = ((float)t_ - (float)tt_)/CLOCKS_PER_SEC;
+
+  Eigen::Matrix<float, 6, 1> X; // state
+  Eigen::Matrix<float, 6, 6> F; // motion model
+  F <<  1, 0, 0, dt,  0,  0,
+        0, 1, 0,  0, dt,  0,
+        0, 0, 1,  0,  0, dt,
+        0, 0, 0,  1,  0,  0,
+        0, 0, 0,  0,  1,  0,
+        0, 0, 0,  0,  0,  1;
+  //Matrix<float, 6, 6> E; // covariance matrix
+  Eigen::Matrix<float, 6, 1> Q; // covariances
+
+  //std::cout << "voor: " << particles_->points[2] << std::endl;
+
+  if (dt > 0) // false if t-2 not yet available
+  {
+    // constant velocity model
+    for (int i = 0; i < origparticles.points.size (); i++)
+    {
+      StateT p = origparticles.points[i];
+      X(0,0) = p.x;
+      X(1,0) = p.y;
+      X(2,0) = p.z;
+      X(3,0) = p.roll;
+      X(4,0) = p.pitch;
+      X(5,0) = p.yaw;
+
+      Q(0,0) = static_cast<float> (sampleNormal (zero_mean[0], step_noise_covariance_[0]));
+      Q(1,0) = static_cast<float> (sampleNormal (zero_mean[1], step_noise_covariance_[1]));
+      Q(2,0) = static_cast<float> (sampleNormal (zero_mean[2], step_noise_covariance_[2]));
+      Q(3,0) = static_cast<float> (sampleNormal (zero_mean[3], step_noise_covariance_[3]));
+      Q(4,0) = static_cast<float> (sampleNormal (zero_mean[4], step_noise_covariance_[4]));
+      Q(5,0) = static_cast<float> (sampleNormal (zero_mean[5], step_noise_covariance_[5]));
+
+      X = F*X + F*Q;
+
+      p.x       = X(0,0);
+      p.y       = X(1,0);
+      p.z       = X(2,0);
+      p.roll    = X(3,0);
+      p.pitch   = X(4,0);
+      p.yaw     = X(5,0);
+      particles_->points.push_back (p);
+    }
+  }
+  else
+  {
+    // constant position model
+    for (int i = 0; i < origparticles.points.size (); i++)
+    {
+      StateT p = origparticles.points[i];
+      // add noise using gaussian
+      p.sample (zero_mean, step_noise_covariance_);
+      particles_->points.push_back (p);
+    }
+  }
+
+  //std::cout << "na: " << particles_->points[2] << std::endl;
+
+/*
+  if (dt > 0) // false if t-2 not yet available
+  {
+    // constant velocity model
+    for (int i = 0; i < origparticles.points.size (); i++)
+    {
+      StateT p = origparticles.points[i];
+      p.x = p.x + motion_ratio_ * (dt*p.roll);
+      p.y = p.y + motion_ratio_ * (dt*p.pitch);
+      p.z = p.z + motion_ratio_ * (dt*p.yaw);
+      // add noise using gaussian
+      p.sample (zero_mean, step_noise_covariance_);
+      particles_->points.push_back (p);
+    }
+  }
+  else
+  {
+    // constant position model
+    for (int i = 0; i < origparticles.points.size (); i++)
+    {
+      StateT p = origparticles.points[i];
+      // add noise using gaussian
+      p.sample (zero_mean, step_noise_covariance_);
+      particles_->points.push_back (p);
+    }
+  }
 
   // constant velocity model
-  float dt = ((float)t_ - (float)tt_)/CLOCKS_PER_SEC;
   //dt = 0; //uncomment to use const pos model
   if (dt > 0) // false if t-2 not yet available
   {
@@ -137,6 +220,7 @@ pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::predict ()
       particles_->points.push_back (p);
     }
   }
+*/
 }
 
 template <typename PointInT, typename StateT> void
@@ -190,6 +274,7 @@ pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::computeTracking ()
   histogramCoherence_.setUpdateReferenceHistogram (true);
   histogramCoherence_.compute (representative_state_);
   histogramCoherence_.setUpdateReferenceHistogram (false);
+
 }
 /*
 prediction step                                         (proposal via motion model + noise)

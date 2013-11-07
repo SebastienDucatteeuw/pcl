@@ -128,7 +128,6 @@
       if (update_reference_histogram_ && (weight >= update_threshold_))
       {
         reference_histogram_ = target_histogram_;
-        std::cout << "Color model updated." << std::endl;
       }
 
       return weight;

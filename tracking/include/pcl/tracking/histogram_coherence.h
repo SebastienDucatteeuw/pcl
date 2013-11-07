@@ -27,7 +27,7 @@ namespace pcl
         , reference_histogram_ (361)
         , target_histogram_ (361)
         , update_reference_histogram_ (false)
-        , update_threshold_ (0.6)
+        , update_threshold_ (0.7)
         {
           std::fill(reference_histogram_.begin(), reference_histogram_.end(), 0);
         }
