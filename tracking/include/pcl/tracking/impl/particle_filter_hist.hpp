@@ -65,6 +65,9 @@ template <typename PointInT, typename StateT> void
 pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::normalizeWeight ()
 {
   double sum = 0.0;
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(threads_)
+#endif
   for ( size_t i = 0; i < particles_->points.size (); i++ )
   {
       sum += particles_->points[i].weight;
@@ -72,11 +75,17 @@ pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::normalizeWeight ()
 
   if (sum != 0.0)
   {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(threads_)
+#endif
     for ( size_t i = 0; i < particles_->points.size (); i++ )
       particles_->points[i].weight =  particles_->points[i].weight / static_cast<float> (sum);
   }
   else
   {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(threads_)
+#endif
     for ( size_t i = 0; i < particles_->points.size (); i++ )
       particles_->points[i].weight = 1.0f / static_cast<float> (particles_->points.size ());
   }
@@ -86,12 +95,13 @@ template <typename PointInT, typename StateT> void
 pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::weight ()
 {
   histogramCoherence_.setInputCloud (input_);
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(threads_)
+#endif
+  for (size_t i = 0; i < particles_->points.size (); i++)
   {
-    for (size_t i = 0; i < particles_->points.size (); i++)
-    {
-      particles_->points[i].weight = histogramCoherence_.compute (particles_->points[i]);
-      //std::cout << "norm weight part 20: " << particles_->points[i].weight << std::endl;
-    }
+    particles_->points[i].weight = histogramCoherence_.compute (particles_->points[i]);
+    //std::cout << "norm weight part 20: " << particles_->points[i].weight << std::endl;
   }
   normalizeWeight ();
 }
@@ -120,6 +130,9 @@ pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::predict ()
   if (dt > 0) // false if t-2 not yet available
   {
     // constant velocity model
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(threads_)
+#endif
     for (int i = 0; i < origparticles.points.size (); i++)
     {
       StateT p = origparticles.points[i];
@@ -151,6 +164,9 @@ pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::predict ()
   else
   {
     // constant position model
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(threads_)
+#endif
     for (int i = 0; i < origparticles.points.size (); i++)
     {
       StateT p = origparticles.points[i];
@@ -268,13 +284,13 @@ pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::computeTracking ()
     StateT p = particles_->points[i];
     representative_state_ = representative_state_ + p * p.weight;
   }
-
+/*
   // update colormodel
   histogramCoherence_.setInputCloud (input_);
   histogramCoherence_.setUpdateReferenceHistogram (true);
   histogramCoherence_.compute (representative_state_);
   histogramCoherence_.setUpdateReferenceHistogram (false);
-
+*/
 }
 /*
 prediction step                                         (proposal via motion model + noise)

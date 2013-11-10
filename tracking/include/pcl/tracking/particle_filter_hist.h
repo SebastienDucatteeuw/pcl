@@ -84,6 +84,7 @@ namespace pcl
         , change_detector_interval_ (10)
         , change_detector_resolution_ (0.01)
         , use_change_detector_ (false)
+        , threads_ (0)
         {
           tracker_name_ = "ParticleFilterTracker";
           pass_x_.setFilterFieldName ("x");
@@ -315,6 +316,12 @@ namespace pcl
         /** \brief Get the result of tracking. */
         inline StateT getRepresentativeState () { return representative_state_; }
 
+        /** \brief Initialize the scheduler and set the number of threads to use.
+        * \param nr_threads the number of hardware threads to use (0 sets the value back to automatic)
+        */
+        inline void
+        setNumberOfThreads (unsigned int nr_threads) { threads_ = nr_threads; }
+
       protected:
         /** \brief This method should get called before starting the actual computation. */
         virtual bool initCompute ();
@@ -441,6 +448,9 @@ namespace pcl
         clock_t t_;
 
         clock_t tt_;
+
+        /** \brief The number of threads the scheduler should use. */
+        unsigned int threads_;
     };
   }
 }
