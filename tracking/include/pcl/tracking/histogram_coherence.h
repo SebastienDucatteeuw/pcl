@@ -23,11 +23,11 @@ namespace pcl
         using PCLBase<PointInT>::input_;
 
         HistogramCoherence ()
-        : cluster_radius_  (0.05)
+        : cluster_radius_  (0.02)
         , reference_histogram_ (361)
         , target_histogram_ (361)
         , update_reference_histogram_ (false)
-        , update_threshold_ (0.7)
+        , update_threshold_ (0.3)
         {
           std::fill(reference_histogram_.begin(), reference_histogram_.end(), 0);
         }
@@ -36,7 +36,7 @@ namespace pcl
         compute (const StateT& target);
 
         inline void
-        setClusterRadius (int cluster_radius) { cluster_radius_  = cluster_radius; }
+        setClusterRadius (float cluster_radius) { cluster_radius_  = cluster_radius; }
 
         inline void
         setReferenceHistogram (const std::vector <float> &histogram) { reference_histogram_ = histogram; }

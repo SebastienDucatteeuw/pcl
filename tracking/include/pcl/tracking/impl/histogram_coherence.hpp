@@ -26,9 +26,14 @@
           bcoeff = bcoeff + std::sqrt(hist1[i] * hist2[i]);
         }
         // Calc the distance between the two distributions
-        float bdist = std::sqrt(1 - bcoeff);
+        //float bdist = std::sqrt(1 - bcoeff);
 
-        return bdist;
+        // sigma = 0.15 //0.3 //0.2;
+        // coeff1 = 1/sqrt(2*Pi*sigma) = 1.0301 //0.7284 //0.8921
+        // coeff2 = 2*sigma^2 = 0.045 //0.18 //0.08
+        float weight = static_cast<float> ( 0.8921 * std::exp(-(1-bcoeff) / 0.08) );
+
+        return weight;
       }
     }
 
@@ -120,14 +125,18 @@
         obj.computeHue (*cloud_cluster_target_hsv, target_histogram_);
 
         // TODO Use case structure to select the desired method to calculate the likelihood
-        weight = 1-BhattacharyyaDistance(reference_histogram_, target_histogram_);
+        weight = BhattacharyyaDistance(reference_histogram_, target_histogram_);
       }
       else
         weight = 0;
 
       if (update_reference_histogram_ && (weight >= update_threshold_))
       {
-        reference_histogram_ = target_histogram_;
+        float alpha = 0.3; // ratio of new colormodel to be added
+        for (int  i = 0; i < reference_histogram_.size (); i++)
+        {
+          reference_histogram_[i] = static_cast<float> ( (1-alpha)*reference_histogram_[i] + alpha*target_histogram_[i] );
+        }
       }
 
       return weight;
