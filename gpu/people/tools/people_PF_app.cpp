@@ -124,7 +124,7 @@ savePNGFile (const std::string& filename, const pcl::PointCloud<T>& cloud)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-class PeoplePCDApp
+class PeopleTrackerApp
 {
   public:
     typedef pcl::gpu::people::PeopleDetector PeopleDetector;
@@ -133,7 +133,7 @@ class PeoplePCDApp
 
     enum { COLS = 640, ROWS = 480 };
 
-    PeoplePCDApp (pcl::Grabber& capture, bool write)
+    PeopleTrackerApp (pcl::Grabber& capture, bool write)
       : capture_ (capture),
         write_ (write),
         exit_ (false),
@@ -152,6 +152,7 @@ class PeoplePCDApp
     {
       final_view_.setSize (COLS, ROWS);
       depth_view_.setSize (COLS, ROWS);
+      cloud_view_.setSize (COLS, ROWS);
 
       final_view_.setPosition (645, 0);
       depth_view_.setPosition (0, 0);
@@ -250,7 +251,7 @@ class PeoplePCDApp
     }
 
     void
-    visualizeAndWrite()
+    visualize()
     {
       const PeopleDetector::Labels& labels = people_detector_.rdf_detector_->getLabels();
       people::colorizeLabels(color_map_, labels, cmap_device_);
@@ -265,31 +266,16 @@ class PeoplePCDApp
       final_view_.showRGBImage<pcl::RGB>(cmap_host_);
       final_view_.spinOnce(1, true);
 
-      if (cloud_cb_)
-      {
-        depth_host_.width = people_detector_.depth_device1_.cols();
-        depth_host_.height = people_detector_.depth_device1_.rows();
-        depth_host_.points.resize(depth_host_.width * depth_host_.height);
-        people_detector_.depth_device1_.download(depth_host_.points, c);
-      }
+      depth_host_.width = people_detector_.depth_device1_.cols();
+      depth_host_.height = people_detector_.depth_device1_.rows();
+      depth_host_.points.resize(depth_host_.width * depth_host_.height);
+      people_detector_.depth_device1_.download(depth_host_.points, c);
 
       depth_view_.showShortImage(&depth_host_.points[0], depth_host_.width, depth_host_.height, 0, 5000, true);
       depth_view_.spinOnce(1, true);
 
       drawParticles ();
-
-      if (write_)
-      {
-        PCL_VERBOSE("PeoplePCDApp::visualizeAndWrite : (I) : Writing to disk");
-        if (cloud_cb_)
-          savePNGFile(make_name(counter_, "ii"), cloud_host_);
-        else
-          savePNGFile(make_name(counter_, "ii"), rgba_host_);
-        savePNGFile(make_name(counter_, "c2"), cmap_host_);
-        savePNGFile(make_name(counter_, "s2"), labels);
-        savePNGFile(make_name(counter_, "d1"), people_detector_.depth_device1_);
-        savePNGFile(make_name(counter_, "d2"), people_detector_.depth_device2_);
-      }
+      cloud_view_.spinOnce(1, true);
     }
 
     void
@@ -341,7 +327,7 @@ class PeoplePCDApp
     }
 
     void
-    source_cb1 (const boost::shared_ptr<const PointCloud<PointXYZRGBA> >& cloud)
+    source_cb (const boost::shared_ptr<const PointCloud<PointXYZRGBA> >& cloud)
     {
       {
         boost::mutex::scoped_lock lock (data_ready_mutex_);
@@ -349,53 +335,6 @@ class PeoplePCDApp
           return;
 
         pcl::copyPointCloud (*cloud, cloud_host_);
-      }
-      data_ready_cond_.notify_one ();
-    }
-
-    void
-    source_cb2 (const boost::shared_ptr<openni_wrapper::Image>& image_wrapper, const boost::shared_ptr<openni_wrapper::DepthImage>& depth_wrapper, float)
-    {
-      {
-        boost::mutex::scoped_try_lock lock (data_ready_mutex_);
-
-        if (exit_ || !lock)
-          return;
-
-        //getting depth
-        int w = depth_wrapper->getWidth ();
-        int h = depth_wrapper->getHeight ();
-        int s = w * PeopleDetector::Depth::elem_size;
-        const unsigned short *data = depth_wrapper->getDepthMetaData ().Data ();
-        depth_device_.upload (data, s, h, w);
-
-        depth_host_.points.resize(w *h);
-        depth_host_.width = w;
-        depth_host_.height = h;
-        std::copy (data, data + w * h, &depth_host_.points[0]);
-
-        //getting image
-        w = image_wrapper->getWidth ();
-        h = image_wrapper->getHeight ();
-        s = w * PeopleDetector::Image::elem_size;
-
-        //fill rgb array
-        rgb_host_.resize (w * h * 3);
-        image_wrapper->fillRGB (w, h, (unsigned char*)&rgb_host_[0]);
-
-        // convert to rgba, TODO image_wrapper should be updated to support rgba directly
-        rgba_host_.points.resize (w * h);
-        rgba_host_.width = w;
-        rgba_host_.height = h;
-        for(int i = 0; i < rgba_host_.size (); ++i)
-        {
-          const unsigned char *pixel = &rgb_host_[i * 3];
-          RGB& rgba = rgba_host_.points[i];
-          rgba.r = pixel[0];
-          rgba.g = pixel[1];
-          rgba.b = pixel[2];
-        }
-        image_device_.upload (&rgba_host_.points[0], s, h, w);
       }
       data_ready_cond_.notify_one ();
     }
@@ -426,18 +365,8 @@ class PeoplePCDApp
         tracker_list_[i].setMotionRatio (0.5);
       }
 
-      cloud_cb_ = false;
-
-      PCDGrabberBase* ispcd = dynamic_cast<pcl::PCDGrabberBase*>(&capture_);
-      if (ispcd)
-        cloud_cb_= true;
-
-      typedef boost::shared_ptr<openni_wrapper::DepthImage> DepthImagePtr;
-      typedef boost::shared_ptr<openni_wrapper::Image> ImagePtr;
-
-      boost::function<void (const boost::shared_ptr<const PointCloud<PointXYZRGBA> >&)> func1 = boost::bind (&PeoplePCDApp::source_cb1, this, _1);
-      boost::function<void (const ImagePtr&, const DepthImagePtr&, float constant)> func2 = boost::bind (&PeoplePCDApp::source_cb2, this, _1, _2, _3);
-      boost::signals2::connection c = cloud_cb_ ? capture_.registerCallback (func1) : capture_.registerCallback (func2);
+      boost::function<void (const boost::shared_ptr<const PointCloud<PointXYZRGBA> >&)> func_source_cb = boost::bind (&PeopleTrackerApp::source_cb, this, _1);
+      boost::signals2::connection source_connection = capture_.registerCallback (func_source_cb);
 
       {
         boost::unique_lock<boost::mutex> lock(data_ready_mutex_);
@@ -451,17 +380,11 @@ class PeoplePCDApp
             if(has_data)
             {
               SampledScopeTime fps(time_ms_);
-
-              if (cloud_cb_)
-                process_return_ = people_detector_.process(cloud_host_.makeShared());
-              else
-                process_return_ = people_detector_.process(depth_device_, image_device_);
-
+              process_return_ = people_detector_.process(cloud_host_.makeShared());
               ++counter_;
             }
-
             if(has_data && (process_return_ == 2))
-              visualizeAndWrite();
+              visualize();
           }
           final_view_.spinOnce (3);
         }
@@ -470,7 +393,7 @@ class PeoplePCDApp
 
         capture_.stop ();
       }
-      c.disconnect();
+      source_connection.disconnect();
     }
 
     boost::mutex data_ready_mutex_;
@@ -603,7 +526,7 @@ int main(int argc, char** argv)
     PCL_VERBOSE("[Main] : Loaded files into rdf");
 
     // Create the app
-    PeoplePCDApp app(*capture, write);
+    PeopleTrackerApp app(*capture, write);
     app.people_detector_.rdf_detector_ = rdf;
 
     // Executing
