@@ -42,7 +42,6 @@
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types_conversion.h>
-#include <pcl/common/statistics/statistics.h>
 #include <pcl/common/time.h>
 #include <pcl/exceptions.h>
 #include <pcl/console/parse.h>
@@ -130,7 +129,7 @@ class PeoplePCDApp
   public:
     typedef pcl::gpu::people::PeopleDetector PeopleDetector;
     typedef pcl::PointCloud<pcl::PointXYZRGBA> Cloud;
-    typedef typename Cloud::ConstPtr CloudConstPtr;
+    typedef Cloud::ConstPtr CloudConstPtr;
 
     enum { COLS = 640, ROWS = 480 };
 
@@ -147,7 +146,6 @@ class PeoplePCDApp
         cloud_view_ ("Pointcloud with PF"),
         hist_ref_ (num_of_trackers, std::vector<float> (361)),
         hist_ref_double_ (num_of_trackers, std::vector<double> (361)),
-        histogramStatistics_ (0, 360, 361, false, true),
         tracker_list_ (num_of_trackers),
         setRef_ (false),
         color_ (num_of_trackers, std::vector<float> (3))
@@ -155,10 +153,9 @@ class PeoplePCDApp
       final_view_.setSize (COLS, ROWS);
       depth_view_.setSize (COLS, ROWS);
 
-      final_view_.setPosition (0, 0);
-      depth_view_.setPosition (650, 0);
-      histogram_view_.setPosition (1300, 0);
-      cloud_view_.setPosition (0, 490);
+      final_view_.setPosition (645, 0);
+      depth_view_.setPosition (0, 0);
+      cloud_view_.setPosition (0, 520);
 
       cmap_device_.create(ROWS, COLS);
       cmap_host_.points.resize(COLS * ROWS);
@@ -193,8 +190,21 @@ class PeoplePCDApp
     void
     drawParticles ()
     {
+      pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloudPtr (new pcl::PointCloud<pcl::PointXYZRGBA> (cloud_host_));
       pcl::PointCloud<pcl::PointXYZ>::Ptr particle_cloud (new pcl::PointCloud<pcl::PointXYZ> ());
       pcl::PointXYZ rep_state;
+
+      // Draw input PointCloud
+      if (!cloud_view_.updatePointCloud (cloudPtr, "Input PointCloud"))
+      {
+        cloud_view_.resetCameraViewpoint ("Input PointCloud");
+        cloud_view_.addPointCloud (cloudPtr, "Input PointCloud");
+      }
+      else
+      {
+        cloud_view_.updatePointCloud (cloudPtr, "Input PointCloud");
+      }
+
       for (int i = 0; i < tracker_list_.size (); i++)
       {
         std::string particle_cloud_name = "particle_cloud_";
@@ -235,53 +245,7 @@ class PeoplePCDApp
             cloud_view_.updateSphere (rep_state, 0.05, color_[i][0], color_[i][1], color_[i][2], rep_state_name.c_str());
           }
         }
-        particle_cloud.points.clear ();
-      }
-    }
-
-    void
-    tracker_cb (const CloudConstPtr& cloud)
-    {
-      boost::mutex::scoped_lock lock (cloud_mutex_);
-
-      // Compute all reference colormodels for each limb
-      if (!setRef_)
-      {
-        for (int i = 0; i < tracker_list_.size (), i++)
-        {
-          //set initial state and colormodel
-          Eigen::Vector3f c;
-          Eigen::Affine3f trans;
-          c[0] = 0; //TODO mean values of selected blob
-          c[1] = 0;
-          c[2] = 1.25;
-          trans.translation ().matrix () = c;
-
-          tracker_list_[i].setTrans (trans);
-          tracker_list_[i].setReferenceHistogram (reference_histogram);
-          std::cout << "Reference colormodel " << i << " has been set." << std::endl;
-        }
-        setRef_ = true;
-      }
-      // Start tracking
-      else
-      {
-        for (int i = 0; i < tracker_list_.size (); i++)
-        {
-          tracker_list_[i].setInputCloud (cloud);
-          tracker_list_[i].compute ();
-        }
-        drawParticles (); // TODO visualizeAndWrite () would be a better place to do this
-      }
-
-      //get actual reference colormodels of all trackers to plot as a histogram
-      if (setRef_)
-      {
-        for (int i = 0; i < tracker_list_.size (); i++)
-        {
-          hist_ref_[i] = tracker_list_[i].getReferenceHistogram ();
-          std::copy(hist_ref_[i].begin(), hist_ref_[i].end(), hist_ref_double_[i].begin());
-        }
+        particle_cloud->points.clear ();
       }
     }
 
@@ -312,6 +276,8 @@ class PeoplePCDApp
       depth_view_.showShortImage(&depth_host_.points[0], depth_host_.width, depth_host_.height, 0, 5000, true);
       depth_view_.spinOnce(1, true);
 
+      drawParticles ();
+
       if (write_)
       {
         PCL_VERBOSE("PeoplePCDApp::visualizeAndWrite : (I) : Writing to disk");
@@ -323,6 +289,54 @@ class PeoplePCDApp
         savePNGFile(make_name(counter_, "s2"), labels);
         savePNGFile(make_name(counter_, "d1"), people_detector_.depth_device1_);
         savePNGFile(make_name(counter_, "d2"), people_detector_.depth_device2_);
+      }
+    }
+
+    void
+    tracker_cb (const CloudConstPtr& cloud)
+    {
+      boost::mutex::scoped_lock lock (data_ready_mutex_);
+
+      // Compute all reference colormodels for each limb
+      if (!setRef_)
+      {
+        for (int i = 0; i < tracker_list_.size (); i++)
+        {
+          //set initial state and colormodel
+          Eigen::Vector3f c;
+          Eigen::Affine3f trans;
+          c[0] = 0; //TODO mean values of selected blob
+          c[1] = 0;
+          c[2] = 1.25;
+          trans.translation ().matrix () = c;
+
+          std::vector<float> reference_histogram(361);
+
+          tracker_list_[i].setTrans (trans);
+          tracker_list_[i].setReferenceHistogram (reference_histogram);
+          std::cout << "Reference colormodel " << i << " has been set." << std::endl;
+        }
+        setRef_ = true;
+      }
+      // Start tracking
+      else
+      {
+        for (int i = 0; i < tracker_list_.size (); i++)
+        {
+          tracker_list_[i].setInputCloud (cloud);
+          tracker_list_[i].compute ();
+        }
+        drawParticles (); // TODO visualizeAndWrite () would be a better place to do this
+      }
+
+      //get actual reference colormodels of all trackers to plot as a histogram
+      if (setRef_)
+      {
+        for (int i = 0; i < tracker_list_.size (); i++)
+        {
+          hist_ref_[i] = tracker_list_[i].getReferenceHistogram ();
+          std::copy(hist_ref_[i].begin(), hist_ref_[i].end(), hist_ref_double_[i].begin());
+        }
       }
     }
 
@@ -494,7 +508,6 @@ class PeoplePCDApp
     std::vector<std::vector<double> > hist_ref_double_;
     std::vector<std::vector<float> > color_;
     bool setRef_;
-    pcl::HistogramStatistics<pcl::PointXYZHSV> histogramStatistics_;
     std::vector<pcl::tracking::ParticleFilterTrackerHist<pcl::PointXYZRGBA, pcl::tracking::ParticleXYZRPY> > tracker_list_;
 };
 
