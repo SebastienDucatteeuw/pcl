@@ -43,11 +43,14 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types_conversion.h>
 #include <pcl/common/time.h>
+#include <pcl/common/statistics/statistics.h>
+#include <pcl/filters/extract_indices.h>
 #include <pcl/exceptions.h>
 #include <pcl/console/parse.h>
 #include <pcl/console/print.h>
 #include <pcl/gpu/containers/initialization.h>
 #include <pcl/gpu/people/people_detector.h>
+#include <pcl/gpu/people/bodyparts_detector.h>
 #include <pcl/gpu/people/colormap.h>
 #include <pcl/visualization/image_viewer.h>
 #include <pcl/visualization/pcl_visualizer.h>
@@ -124,7 +127,7 @@ savePNGFile (const std::string& filename, const pcl::PointCloud<T>& cloud)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-class PeopleTrackerApp
+class PeoplePCDApp
 {
   public:
     typedef pcl::gpu::people::PeopleDetector PeopleDetector;
@@ -133,7 +136,7 @@ class PeopleTrackerApp
 
     enum { COLS = 640, ROWS = 480 };
 
-    PeopleTrackerApp (pcl::Grabber& capture, bool write)
+    PeoplePCDApp (pcl::Grabber& capture, bool write)
       : capture_ (capture),
         write_ (write),
         exit_ (false),
@@ -148,15 +151,16 @@ class PeopleTrackerApp
         hist_ref_double_ (num_of_trackers, std::vector<double> (361)),
         tracker_list_ (num_of_trackers),
         setRef_ (false),
-        color_ (num_of_trackers, std::vector<float> (3))
+        color_ (num_of_trackers, std::vector<float> (3)),
+        histogramStatistics_ (0, 360, 361, false, true)
     {
       final_view_.setSize (COLS, ROWS);
       depth_view_.setSize (COLS, ROWS);
       cloud_view_.setSize (COLS, ROWS);
 
-      final_view_.setPosition (645, 0);
+      final_view_.setPosition (1280, 0);
       depth_view_.setPosition (0, 0);
-      cloud_view_.setPosition (0, 520);
+      cloud_view_.setPosition (640, 0);
 
       cmap_device_.create(ROWS, COLS);
       cmap_host_.points.resize(COLS * ROWS);
@@ -253,9 +257,9 @@ class PeopleTrackerApp
     void
     visualize()
     {
+      // Draw final view
       const PeopleDetector::Labels& labels = people_detector_.rdf_detector_->getLabels();
       people::colorizeLabels(color_map_, labels, cmap_device_);
-      //people::colorizeMixedLabels(
 
       int c;
       cmap_host_.width = cmap_device_.cols();
@@ -266,6 +270,7 @@ class PeopleTrackerApp
       final_view_.showRGBImage<pcl::RGB>(cmap_host_);
       final_view_.spinOnce(1, true);
 
+      // Draw depth view
       depth_host_.width = people_detector_.depth_device1_.cols();
       depth_host_.height = people_detector_.depth_device1_.rows();
       depth_host_.points.resize(depth_host_.width * depth_host_.height);
@@ -274,45 +279,86 @@ class PeopleTrackerApp
       depth_view_.showShortImage(&depth_host_.points[0], depth_host_.width, depth_host_.height, 0, 5000, true);
       depth_view_.spinOnce(1, true);
 
+      // Draw cloud view
+      // 1) draw input cloud
+      pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloudPtr (new pcl::PointCloud<pcl::PointXYZRGBA> (cloud_host_));
+      if (!cloud_view_.updatePointCloud (cloudPtr, "Input PointCloud"))
+      {
+        cloud_view_.resetCameraViewpoint ("Input PointCloud");
+        cloud_view_.addPointCloud (cloudPtr, "Input PointCloud");
+      }
+      else
+      {
+        cloud_view_.updatePointCloud (cloudPtr, "Input PointCloud");
+      }
+      // 2) draw particles
       drawParticles ();
+
       cloud_view_.spinOnce(1, true);
     }
 
     void
-    tracker_cb (const CloudConstPtr& cloud)
+    track ()
     {
-      boost::mutex::scoped_lock lock (data_ready_mutex_);
+      const people::RDFBodyPartsDetector::BlobMatrix& sorted = people_detector_.rdf_detector_->getBlobMatrix ();
+      pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloudPtr (new pcl::PointCloud<pcl::PointXYZRGBA> (cloud_host_));
 
       // Compute all reference colormodels for each limb
       if (!setRef_)
       {
+        pcl::PointCloud<pcl::PointXYZRGBA> segmented_cloud;
+        pcl::PointCloud<pcl::PointXYZHSV> segmented_cloud_HSV;
+        pcl::ExtractIndices<pcl::PointXYZRGBA> extract;
         for (int i = 0; i < tracker_list_.size (); i++)
         {
-          //set initial state and colormodel
-          Eigen::Vector3f c;
-          Eigen::Affine3f trans;
-          c[0] = 0; //TODO mean values of selected blob
-          c[1] = 0;
-          c[2] = 1.25;
-          trans.translation ().matrix () = c;
+          std::cout << people_detector_.t2_.parts_lid[13] << std::endl; 
+          if (people_detector_.t2_.parts_lid[13] != -3)// && sorted[13][people_detector_.t2_.parts_lid[13]].indices.size () > 0)
+          {
+            pcl::PointIndices::ConstPtr indicesPtr (new pcl::PointIndices (sorted[13][people_detector_.t2_.parts_lid[13]].indices));
 
-          std::vector<float> reference_histogram(361);
+            std::cout << sorted[13][people_detector_.t2_.parts_lid[13]].indices << std::endl;
+            sleep(2);
+            //calculate initial state
+            Eigen::Vector4f mean = sorted[13][people_detector_.t2_.parts_lid[13]].mean; //Rforearm
 
-          tracker_list_[i].setTrans (trans);
-          tracker_list_[i].setReferenceHistogram (reference_histogram);
-          std::cout << "Reference colormodel " << i << " has been set." << std::endl;
+            Eigen::Vector3f c;
+            Eigen::Affine3f trans;
+            c[0] = mean(0);
+            c[1] = mean(1);
+            c[2] = mean(2);
+            trans.translation ().matrix () = c;
+
+            //calculate initial colormodel
+            std::vector<float> reference_histogram(361);
+
+            extract.setInputCloud (cloudPtr);
+            extract.setIndices (indicesPtr);
+            extract.setNegative (false);
+            extract.filter (segmented_cloud);
+
+            PointCloudXYZRGBAtoXYZHSV (segmented_cloud, segmented_cloud_HSV);
+            histogramStatistics_.computeHue (segmented_cloud_HSV, reference_histogram);
+
+            //set initial state and colormodel
+            tracker_list_[i].setTrans (trans);
+            tracker_list_[i].setReferenceHistogram (reference_histogram);
+
+            std::cout << "Reference colormodel " << i << " has been set." << std::endl;
+          }
         }
-        setRef_ = true;
+
+        if (counter_ == 300)
+          setRef_ = true;
       }
+/*
       // Start tracking
       else
       {
         for (int i = 0; i < tracker_list_.size (); i++)
         {
-          tracker_list_[i].setInputCloud (cloud);
+          tracker_list_[i].setInputCloud (cloudPtr);
           tracker_list_[i].compute ();
         }
-        drawParticles (); // TODO visualizeAndWrite () would be a better place to do this
       }
 
       //get actual reference colormodels of all trackers to plot as a histogram
@@ -324,6 +370,7 @@ class PeopleTrackerApp
           std::copy(hist_ref_[i].begin(), hist_ref_[i].end(), hist_ref_double_[i].begin());
         }
       }
+*/
     }
 
     void
@@ -365,7 +412,7 @@ class PeopleTrackerApp
         tracker_list_[i].setMotionRatio (0.5);
       }
 
-      boost::function<void (const boost::shared_ptr<const PointCloud<PointXYZRGBA> >&)> func_source_cb = boost::bind (&PeopleTrackerApp::source_cb, this, _1);
+      boost::function<void (const boost::shared_ptr<const PointCloud<PointXYZRGBA> >&)> func_source_cb = boost::bind (&PeoplePCDApp::source_cb, this, _1);
       boost::signals2::connection source_connection = capture_.registerCallback (func_source_cb);
 
       {
@@ -374,17 +421,21 @@ class PeopleTrackerApp
         try
         {
           capture_.start ();
-          while (!exit_ && !final_view_.wasStopped())
+          while (!exit_)
           {
             bool has_data = data_ready_cond_.timed_wait(lock, boost::posix_time::millisec(100));
             if(has_data)
             {
               SampledScopeTime fps(time_ms_);
-              process_return_ = people_detector_.process(cloud_host_.makeShared());
+              track ();
+              process_return_ = people_detector_.process (cloud_host_.makeShared());
               ++counter_;
             }
             if(has_data && (process_return_ == 2))
               visualize();
+
+            if (final_view_.wasStopped() || depth_view_.wasStopped() || cloud_view_.wasStopped())
+              exit_ = true;
           }
           final_view_.spinOnce (3);
         }
@@ -432,6 +483,7 @@ class PeopleTrackerApp
     std::vector<std::vector<float> > color_;
     bool setRef_;
     std::vector<pcl::tracking::ParticleFilterTrackerHist<pcl::PointXYZRGBA, pcl::tracking::ParticleXYZRPY> > tracker_list_;
+    pcl::HistogramStatistics<pcl::PointXYZHSV> histogramStatistics_;
 };
 
 void print_help()
@@ -526,7 +578,7 @@ int main(int argc, char** argv)
     PCL_VERBOSE("[Main] : Loaded files into rdf");
 
     // Create the app
-    PeopleTrackerApp app(*capture, write);
+    PeoplePCDApp app(*capture, write);
     app.people_detector_.rdf_detector_ = rdf;
 
     // Executing

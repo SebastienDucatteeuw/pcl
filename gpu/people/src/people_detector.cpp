@@ -100,6 +100,11 @@ pcl::gpu::people::PeopleDetector::allocate_buffers(int rows, int cols)
   cloud_host_.points.resize(cols * rows);
   cloud_host_.is_dense = false;
 
+  cloud_host_color_.width  = cols;
+  cloud_host_color_.height = rows;
+  cloud_host_color_.points.resize(cols * rows);
+  cloud_host_color_.is_dense = false;
+
   hue_host_.width  = cols;
   hue_host_.height = rows;
   hue_host_.points.resize(cols * rows);
@@ -213,13 +218,13 @@ pcl::gpu::people::PeopleDetector::process ()
 
     //brief Test if the second tree is build up correctly
     if(sorted2[Neck].size() != 0)
-    {      
-      Tree2 t2;
-      buildTree(sorted2, cloud_host_, Neck, c, t2);
+    {
+      //Tree2 t2;
+      buildTree(sorted2, cloud_host_, Neck, c, t2_);
       int par = 0;
       for(int f = 0; f < NUM_PARTS; f++)
       {
-       /* if(t2.parts_lid[f] == NO_CHILD)
+        /*if(t2.parts_lid[f] == NO_CHILD)
         {
           cerr << "1;";
           par++;
@@ -232,7 +237,7 @@ pcl::gpu::people::PeopleDetector::process ()
       return 2;
     }
     return 1;
-    //output: Tree2 and PointCloud<XYZRGBL> 
+    //output: Tree2 and PointCloud<XYZRGBL>
   }
   return 0;
 }
@@ -387,6 +392,7 @@ pcl::gpu::people::PeopleDetector::processProb ()
       first_iteration_ = false;
       return 2;
     }
+
     first_iteration_ = false;
     return 1;
     //output: Tree2 and PointCloud<XYZRGBL>

@@ -46,6 +46,7 @@
 #include <pcl/gpu/containers/device_array.h>
 #include <pcl/gpu/people/label_common.h>
 #include <pcl/gpu/people/tree.h>
+#include <pcl/gpu/people/label_tree.h>
 #include <pcl/gpu/people/person_attribs.h>
 //#include <opencv2/core/core.hpp>
 
@@ -149,6 +150,8 @@ namespace pcl
           
           Mask                        fg_mask_;
           Mask                        fg_mask_grown_;
+
+          Tree2                       t2_;
 
           int
           process ();
