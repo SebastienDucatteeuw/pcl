@@ -150,9 +150,10 @@ class PeoplePCDApp
         hist_ref_ (num_of_trackers, std::vector<float> (361)),
         hist_ref_double_ (num_of_trackers, std::vector<double> (361)),
         tracker_list_ (num_of_trackers),
-        setRef_ (false),
+        setRef_ (0),
         color_ (num_of_trackers, std::vector<float> (3)),
-        histogramStatistics_ (0, 360, 361, false, true)
+        histogramStatistics_ (0, 360, 361, false, true),
+        histogramCoherence_ ()
     {
       final_view_.setSize (COLS, ROWS);
       depth_view_.setSize (COLS, ROWS);
@@ -195,20 +196,8 @@ class PeoplePCDApp
     void
     drawParticles ()
     {
-      pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloudPtr (new pcl::PointCloud<pcl::PointXYZRGBA> (cloud_host_));
       pcl::PointCloud<pcl::PointXYZ>::Ptr particle_cloud (new pcl::PointCloud<pcl::PointXYZ> ());
       pcl::PointXYZ rep_state;
-
-      // Draw input PointCloud
-      if (!cloud_view_.updatePointCloud (cloudPtr, "Input PointCloud"))
-      {
-        cloud_view_.resetCameraViewpoint ("Input PointCloud");
-        cloud_view_.addPointCloud (cloudPtr, "Input PointCloud");
-      }
-      else
-      {
-        cloud_view_.updatePointCloud (cloudPtr, "Input PointCloud");
-      }
 
       for (int i = 0; i < tracker_list_.size (); i++)
       {
@@ -304,7 +293,7 @@ class PeoplePCDApp
       pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloudPtr (new pcl::PointCloud<pcl::PointXYZRGBA> (cloud_host_));
 
       // Compute all reference colormodels for each limb
-      if (!setRef_)
+      if (setRef_ < tracker_list_.size ())
       {
         pcl::PointCloud<pcl::PointXYZRGBA> segmented_cloud;
         pcl::PointCloud<pcl::PointXYZHSV> segmented_cloud_HSV;
@@ -329,7 +318,8 @@ class PeoplePCDApp
             trans.translation ().matrix () = c;
 
             //calculate initial colormodel
-            std::vector<float> reference_histogram(361);
+            std::vector<float> reference_histogram (361);
+            std::vector<float> reference_histogram_tmp (361);
 
             extract.setInputCloud (cloudPtr);
             extract.setIndices (indicesPtr);
@@ -337,18 +327,33 @@ class PeoplePCDApp
             extract.filter (segmented_cloud);
 
             PointCloudXYZRGBAtoXYZHSV (segmented_cloud, segmented_cloud_HSV);
-            histogramStatistics_.computeHue (segmented_cloud_HSV, reference_histogram);
+            histogramStatistics_.computeHue (segmented_cloud_HSV, reference_histogram_tmp);
 
-            //set initial state and colormodel
-            tracker_list_[i].setTrans (trans);
-            tracker_list_[i].setReferenceHistogram (reference_histogram);
+            if (counter_ < 10) //skip first 10 frames to avoid unreliable measurements
+            {
+              tracker_list_[i].setReferenceHistogram (reference_histogram_tmp);
+            }
 
-            std::cout << "Reference colormodel " << i << " has been set." << std::endl;
+            std::vector<float> reference_histogram_old = tracker_list_[i].getReferenceHistogram ();
+            if (counter_ >= 10) //build the colormodel on reliable measurements
+            {
+              float alpha = 0.3;
+              for (int i = 0; i < reference_histogram.size (); i++)
+              {
+                reference_histogram[i] = static_cast<float> ( ((1-alpha) * reference_histogram_old[i]) + (alpha * reference_histogram_tmp[i]) );
+              }
+              tracker_list_[i].setReferenceHistogram (reference_histogram);
+            }
+
+            if (counter_ >= 10 && (histogramCoherence_.BhattacharyyaDistance(reference_histogram, reference_histogram_old) > 0.8 ))
+            {
+              //set initial state
+              tracker_list_[i].setTrans (trans);
+              std::cout << "Reference colormodel " << i << " has been set." << std::endl;
+              setRef_ ++;
+            }
           }
         }
-
-        if (counter_ == 300)
-          setRef_ = true;
       }
 /*
       // Start tracking
@@ -481,9 +486,10 @@ class PeoplePCDApp
     std::vector<std::vector<float> > hist_ref_;
     std::vector<std::vector<double> > hist_ref_double_;
     std::vector<std::vector<float> > color_;
-    bool setRef_;
+    int setRef_;
     std::vector<pcl::tracking::ParticleFilterTrackerHist<pcl::PointXYZRGBA, pcl::tracking::ParticleXYZRPY> > tracker_list_;
     pcl::HistogramStatistics<pcl::PointXYZHSV> histogramStatistics_;
+    pcl::tracking::HistogramCoherence<pcl::PointXYZRGBA, pcl::tracking::ParticleXYZRPY> histogramCoherence_;
 };
 
 void print_help()
