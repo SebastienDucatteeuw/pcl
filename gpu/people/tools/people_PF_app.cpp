@@ -163,6 +163,10 @@ class PeoplePCDApp
       depth_view_.setPosition (0, 0);
       cloud_view_.setPosition (640, 0);
 
+      histogram_view_.setShowLegend (true);
+      histogram_view_.setXRange (0, 361);
+      histogram_view_.setYRange (0, 0.1);
+
       cmap_device_.create(ROWS, COLS);
       cmap_host_.points.resize(COLS * ROWS);
       depth_device_.create(ROWS, COLS);
@@ -256,53 +260,58 @@ class PeoplePCDApp
     void
     visualize()
     {
-      // Draw final view
+      //---- Draw final view ----
       const PeopleDetector::Labels& labels = people_detector_.rdf_detector_->getLabels();
       people::colorizeLabels(color_map_, labels, cmap_device_);
-
       int c;
       cmap_host_.width = cmap_device_.cols();
       cmap_host_.height = cmap_device_.rows();
       cmap_host_.points.resize(cmap_host_.width * cmap_host_.height);
       cmap_device_.download(cmap_host_.points, c);
-
       final_view_.showRGBImage<pcl::RGB>(cmap_host_);
       final_view_.spinOnce(1, true);
 
-      // Draw depth view
+      //---- Draw depth view ----
       depth_host_.width = people_detector_.depth_device1_.cols();
       depth_host_.height = people_detector_.depth_device1_.rows();
       depth_host_.points.resize(depth_host_.width * depth_host_.height);
       people_detector_.depth_device1_.download(depth_host_.points, c);
-
       depth_view_.showShortImage(&depth_host_.points[0], depth_host_.width, depth_host_.height, 0, 5000, true);
       depth_view_.spinOnce(1, true);
 
-      // Draw cloud view
+      //---- Draw cloud view ----
       // 1) draw input cloud
-      pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloudPtr (new pcl::PointCloud<pcl::PointXYZRGBA> (cloud_host_));
-      if (!cloud_view_.updatePointCloud (cloudPtr, "Input PointCloud"))
+      if (!cloud_view_.updatePointCloud (cloud_host_, "Input PointCloud"))
       {
         cloud_view_.resetCameraViewpoint ("Input PointCloud");
-        cloud_view_.addPointCloud (cloudPtr, "Input PointCloud");
+        cloud_view_.addPointCloud (cloud_host_, "Input PointCloud");
       }
       else
       {
-        cloud_view_.updatePointCloud (cloudPtr, "Input PointCloud");
+        cloud_view_.updatePointCloud (cloud_host_, "Input PointCloud");
       }
       // 2) draw particles
       drawParticles ();
-
       cloud_view_.spinOnce(1, true);
+
+      //---- Draw histogram view ----
+      histogram_view_.clearPlots ();
+      for (int i = 0; i < tracker_list_.size (); i++)
+      {
+        if (setRef_[i] == true)
+        {
+          histogram_view_.addPlotData (bins, hist_ref_double_[i]);
+        }
+      }
+      histogram_view_.spinOnce ();
     }
 
     void
     track ()
     {
       const people::RDFBodyPartsDetector::BlobMatrix& sorted = people_detector_.rdf_detector_->getBlobMatrix ();
-      pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloudPtr (new pcl::PointCloud<pcl::PointXYZRGBA> (cloud_host_));
 
-      // Compute all reference colormodels for each limb
+      // Initialize colormodel and state for each limb
       if (!setRefDone ())
       {
         pcl::PointCloud<pcl::PointXYZRGBA> segmented_cloud;
@@ -310,30 +319,60 @@ class PeoplePCDApp
         pcl::ExtractIndices<pcl::PointXYZRGBA> extract;
         for (int i = 0; i < tracker_list_.size (); i++)
         {
-          if (people_detector_.t2_.parts_lid[13] != -3)
+          if (people_detector_.t2_.parts_lid[13] != -3);
           {
             pcl::PointIndices::Ptr indicesPtr (new pcl::PointIndices);
             indicesPtr->indices = sorted[13][people_detector_.t2_.parts_lid[13]].indices.indices;
 
             //calculate initial state
             Eigen::Vector4f mean = sorted[13][people_detector_.t2_.parts_lid[13]].mean; //Rforearm
-
             Eigen::Vector3f c;
             Eigen::Affine3f trans;
             c[0] = mean(0);
             c[1] = mean(1);
             c[2] = mean(2);
             trans.translation ().matrix () = c;
-std::cout << c << std::endl;
 
             //calculate initial colormodel
             std::vector<float> reference_histogram (361);
             std::vector<float> reference_histogram_tmp (361);
 
-            extract.setInputCloud (cloudPtr);
+            //Replace wrong indices with zeros
+            int n = 0;
+            for (int i = 0; i < indicesPtr->indices.size (); i++)
+            {
+              if ((indicesPtr->indices[i] > 307199) || (indicesPtr->indices[i] < 0))
+              {
+                indicesPtr->indices[i] = 0;
+              }
+            }
+
+            /* Save indices to file
+            std::string filename = "/tmp/track_log.txt";
+            std::ofstream writefile;
+            writefile.open (filename.c_str()); //, ios::out | ios::app); //add to append the file
+            writefile << "Frame number: " << counter_ << std::endl;
+            for (int i = 0; i < indicesPtr->indices.size (); i++)
+            {
+              writefile << indicesPtr->indices[i] << std::endl;
+            }
+            writefile.close ();
+            */
+
+            extract.setInputCloud (cloud_host_);
             extract.setIndices (indicesPtr);
             extract.setNegative (false);
             extract.filter (segmented_cloud);
+
+            /* Only show Rforearm in cloud_view
+            pcl::PointCloud<pcl::PointXYZRGBA>::Ptr segPtr (new pcl::PointCloud<pcl::PointXYZRGBA> (segmented_cloud));
+            if (!cloud_view_.updatePointCloud (segPtr, "Segmented PointCloud"))
+            {
+              cloud_view_.resetCameraViewpoint ("Segmented PointCloud");
+              cloud_view_.addPointCloud (segPtr, "Segmented PointCloud");
+            }
+            cloud_view_.spinOnce (1, true);
+            */
 
             PointCloudXYZRGBAtoXYZHSV (segmented_cloud, segmented_cloud_HSV);
             histogramStatistics_.computeHue (segmented_cloud_HSV, reference_histogram_tmp);
@@ -364,17 +403,17 @@ std::cout << c << std::endl;
           }
         }
       }
-/*
+
       // Start tracking
       else
       {
         for (int i = 0; i < tracker_list_.size (); i++)
         {
-          tracker_list_[i].setInputCloud (cloudPtr);
+          tracker_list_[i].setInputCloud (cloud_host_);
           tracker_list_[i].compute ();
         }
       }
-*/
+
       //get actual reference colormodels of all trackers to plot as a histogram
       for (int i = 0; i < tracker_list_.size (); i++)
       {
@@ -394,7 +433,7 @@ std::cout << c << std::endl;
         if (exit_)
           return;
 
-        pcl::copyPointCloud (*cloud, cloud_host_);
+        cloud_host_ = cloud;
       }
       data_ready_cond_.notify_one ();
     }
@@ -429,8 +468,7 @@ std::cout << c << std::endl;
       boost::signals2::connection source_connection = capture_.registerCallback (func_source_cb);
 
       {
-        boost::unique_lock<boost::mutex> lock(data_ready_mutex_);
-
+        boost::unique_lock<boost::mutex> lock (data_ready_mutex_);
         try
         {
           capture_.start ();
@@ -440,8 +478,8 @@ std::cout << c << std::endl;
             if(has_data)
             {
               SampledScopeTime fps(time_ms_);
+              process_return_ = people_detector_.process (cloud_host_);
               track ();
-              process_return_ = people_detector_.process (cloud_host_.makeShared());
               ++counter_;
             }
             if(has_data && (process_return_ == 2))
@@ -482,7 +520,7 @@ std::cout << c << std::endl;
     pcl::PointCloud<pcl::RGB> rgba_host_;
     std::vector<unsigned char> rgb_host_;
 
-    PointCloud<PointXYZRGBA> cloud_host_;
+    PointCloud<PointXYZRGBA>::ConstPtr cloud_host_;
 
     ImageViewer final_view_;
     ImageViewer depth_view_;
