@@ -150,7 +150,7 @@ class PeoplePCDApp
         hist_ref_ (num_of_trackers, std::vector<float> (361)),
         hist_ref_double_ (num_of_trackers, std::vector<double> (361)),
         tracker_list_ (num_of_trackers),
-        setRef_ (0),
+        setRef_ (num_of_trackers, false),
         color_ (num_of_trackers, std::vector<float> (3)),
         histogramStatistics_ (0, 360, 361, false, true),
         histogramCoherence_ ()
@@ -190,6 +190,16 @@ class PeoplePCDApp
         color_ [2][1] = 255;
         color_ [2][2] = 0;
       }
+    }
+
+    bool
+    setRefDone ()
+    {
+      int s = 0;
+      for (int i = 0; i < setRef_.size (); i++)
+        if (setRef_[i] == true)
+          s++;
+      return (s == tracker_list_.size ());
     }
 
     // Draw the current particles
@@ -293,20 +303,18 @@ class PeoplePCDApp
       pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloudPtr (new pcl::PointCloud<pcl::PointXYZRGBA> (cloud_host_));
 
       // Compute all reference colormodels for each limb
-      if (setRef_ < tracker_list_.size ())
+      if (!setRefDone ())
       {
         pcl::PointCloud<pcl::PointXYZRGBA> segmented_cloud;
         pcl::PointCloud<pcl::PointXYZHSV> segmented_cloud_HSV;
         pcl::ExtractIndices<pcl::PointXYZRGBA> extract;
         for (int i = 0; i < tracker_list_.size (); i++)
         {
-          std::cout << people_detector_.t2_.parts_lid[13] << std::endl; 
-          if (people_detector_.t2_.parts_lid[13] != -3)// && sorted[13][people_detector_.t2_.parts_lid[13]].indices.size () > 0)
+          if (people_detector_.t2_.parts_lid[13] != -3)
           {
-            pcl::PointIndices::ConstPtr indicesPtr (new pcl::PointIndices (sorted[13][people_detector_.t2_.parts_lid[13]].indices));
+            pcl::PointIndices::Ptr indicesPtr (new pcl::PointIndices);
+            indicesPtr->indices = sorted[13][people_detector_.t2_.parts_lid[13]].indices.indices;
 
-            std::cout << sorted[13][people_detector_.t2_.parts_lid[13]].indices << std::endl;
-            sleep(2);
             //calculate initial state
             Eigen::Vector4f mean = sorted[13][people_detector_.t2_.parts_lid[13]].mean; //Rforearm
 
@@ -316,6 +324,7 @@ class PeoplePCDApp
             c[1] = mean(1);
             c[2] = mean(2);
             trans.translation ().matrix () = c;
+std::cout << c << std::endl;
 
             //calculate initial colormodel
             std::vector<float> reference_histogram (361);
@@ -350,7 +359,7 @@ class PeoplePCDApp
               //set initial state
               tracker_list_[i].setTrans (trans);
               std::cout << "Reference colormodel " << i << " has been set." << std::endl;
-              setRef_ ++;
+              setRef_[i] = true;
             }
           }
         }
@@ -365,17 +374,16 @@ class PeoplePCDApp
           tracker_list_[i].compute ();
         }
       }
-
+*/
       //get actual reference colormodels of all trackers to plot as a histogram
-      if (setRef_)
+      for (int i = 0; i < tracker_list_.size (); i++)
       {
-        for (int i = 0; i < tracker_list_.size (); i++)
+        if (setRef_[i] == true)
         {
           hist_ref_[i] = tracker_list_[i].getReferenceHistogram ();
           std::copy(hist_ref_[i].begin(), hist_ref_[i].end(), hist_ref_double_[i].begin());
         }
       }
-*/
     }
 
     void
@@ -486,7 +494,7 @@ class PeoplePCDApp
     std::vector<std::vector<float> > hist_ref_;
     std::vector<std::vector<double> > hist_ref_double_;
     std::vector<std::vector<float> > color_;
-    int setRef_;
+    std::vector<bool> setRef_;
     std::vector<pcl::tracking::ParticleFilterTrackerHist<pcl::PointXYZRGBA, pcl::tracking::ParticleXYZRPY> > tracker_list_;
     pcl::HistogramStatistics<pcl::PointXYZHSV> histogramStatistics_;
     pcl::tracking::HistogramCoherence<pcl::PointXYZRGBA, pcl::tracking::ParticleXYZRPY> histogramCoherence_;
