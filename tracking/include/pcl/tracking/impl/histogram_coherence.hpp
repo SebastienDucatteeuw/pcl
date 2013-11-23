@@ -168,9 +168,10 @@ pcl::tracking::HistogramCoherence<PointInT, StateT>::initCompute ()
 template <typename PointInT, typename StateT> float
 pcl::tracking::HistogramCoherence<PointInT, StateT>::compute (const StateT& target)
 {
+/*
   if (!initCompute ())
     return 0;
-
+*/
   float coherence = computeCoherence (target);
   deinitCompute ();
   return coherence;
