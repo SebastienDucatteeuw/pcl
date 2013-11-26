@@ -78,7 +78,7 @@ using namespace pcl;
 using namespace std;
 
 std::vector <double> bins(361);
-int num_of_trackers = 1;
+int num_of_trackers = 3;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -149,6 +149,7 @@ class PeoplePCDApp
         cloud_view_ ("Pointcloud with PF"),
         hist_ref_ (num_of_trackers, std::vector<float> (361)),
         hist_ref_double_ (num_of_trackers, std::vector<double> (361)),
+        limbs_ (3),
         tracker_list_ (num_of_trackers),
         setRef_ (num_of_trackers, false),
         color_ (num_of_trackers, std::vector<float> (3)),
@@ -194,6 +195,10 @@ class PeoplePCDApp
         color_ [2][1] = 255;
         color_ [2][2] = 0;
       }
+
+      limbs_ [0] = 13; //Rforearm
+      limbs_ [1] = 17; //Lforearm
+      limbs_ [2] = 23; //Rchest
     }
 
     bool
@@ -319,13 +324,13 @@ class PeoplePCDApp
         pcl::ExtractIndices<pcl::PointXYZRGBA> extract;
         for (int i = 0; i < tracker_list_.size (); i++)
         {
-          if (people_detector_.t2_.parts_lid[13] != -3);
+          if (people_detector_.t2_.parts_lid[limbs_[i]] != -3);
           {
             pcl::PointIndices::Ptr indicesPtr (new pcl::PointIndices);
-            indicesPtr->indices = sorted[13][people_detector_.t2_.parts_lid[13]].indices.indices;
+            indicesPtr->indices = sorted[limbs_[i]][people_detector_.t2_.parts_lid[limbs_[i]]].indices.indices;
 
             //calculate initial state
-            Eigen::Vector4f mean = sorted[13][people_detector_.t2_.parts_lid[13]].mean; //Rforearm
+            Eigen::Vector4f mean = sorted[limbs_[i]][people_detector_.t2_.parts_lid[limbs_[i]]].mean; //Rforearm
             Eigen::Vector3f c;
             Eigen::Affine3f trans;
             c[0] = mean(0);
@@ -533,6 +538,7 @@ class PeoplePCDApp
     std::vector<std::vector<double> > hist_ref_double_;
     std::vector<std::vector<float> > color_;
     std::vector<bool> setRef_;
+    std::vector<int> limbs_; // list of limbs tracked by each tracker
     std::vector<pcl::tracking::ParticleFilterTrackerHist<pcl::PointXYZRGBA, pcl::tracking::ParticleXYZRPY> > tracker_list_;
     pcl::HistogramStatistics<pcl::PointXYZHSV> histogramStatistics_;
     pcl::tracking::HistogramCoherence<pcl::PointXYZRGBA, pcl::tracking::ParticleXYZRPY> histogramCoherence_;
