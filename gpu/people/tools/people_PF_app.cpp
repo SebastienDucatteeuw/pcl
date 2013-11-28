@@ -147,6 +147,7 @@ class PeoplePCDApp
         depth_view_ ("Depth"),
         histogram_view_ ("Colormodels tracked limbs"),
         cloud_view_ ("Pointcloud with PF"),
+        prob_view_ ("Probability distribution arm"),
         hist_ref_ (num_of_trackers, std::vector<float> (361)),
         hist_ref_double_ (num_of_trackers, std::vector<double> (361)),
         limbs_ (3),
@@ -159,10 +160,12 @@ class PeoplePCDApp
       final_view_.setSize (COLS, ROWS);
       depth_view_.setSize (COLS, ROWS);
       cloud_view_.setSize (COLS, ROWS);
+      prob_view_.setSize  (COLS, ROWS);
 
       final_view_.setPosition (1280, 0);
       depth_view_.setPosition (0, 0);
       cloud_view_.setPosition (640, 0);
+      prob_view_.setPosition (0, 0);
 
       histogram_view_.setShowLegend (true);
       histogram_view_.setXRange (0, 361);
@@ -172,8 +175,10 @@ class PeoplePCDApp
       cmap_host_.points.resize(COLS * ROWS);
       depth_device_.create(ROWS, COLS);
       image_device_.create(ROWS, COLS);
+      prob_device_.create(ROWS, COLS);
 
       depth_host_.points.resize(COLS * ROWS);
+      prob_host_.points.resize(COLS * ROWS);
 
       rgba_host_.points.resize(COLS * ROWS);
       rgb_host_.resize(COLS * ROWS * 3);
@@ -199,6 +204,11 @@ class PeoplePCDApp
       limbs_ [0] = 13; //Rforearm
       limbs_ [1] = 17; //Lforearm
       limbs_ [2] = 23; //Rchest
+/*
+      //fill prob_host_ with zeros
+      for (int i = 0; i < prob_host_.points.size (); i++)
+        prob_host_.points[i].rgb = 0;
+*/
     }
 
     bool
@@ -309,12 +319,19 @@ class PeoplePCDApp
         }
       }
       histogram_view_.spinOnce ();
+
+      //---- Draw probability distribution
+      //prob_view_.showRGBImage<pcl::RGB> (prob_host_);
+      prob_view_.spinOnce(1, true);
     }
 
     void
     track ()
     {
       const people::RDFBodyPartsDetector::BlobMatrix& sorted = people_detector_.rdf_detector_->getBlobMatrix ();
+      static const float cx = 320-.5;
+      static const float cy = 240-.5;
+      static const float f = 525;
 
       // Initialize colormodel and state for each limb
       if (!setRefDone ())
@@ -416,6 +433,14 @@ class PeoplePCDApp
         {
           tracker_list_[i].setInputCloud (cloud_host_);
           tracker_list_[i].compute ();
+          // build probability distribution
+          pcl::PointCloud<pcl::tracking::ParticleXYZRPY>::Ptr particles = tracker_list_[i].getParticles ();
+          for (int i = 0; i < particles->points.size (); i++)
+          {
+            //int u = static_cast<int> (f*(point.x/point.z) + cx);
+            //int v = static_cast<int> (f*(point.y/point.z) + cy);
+            //prob_device_[u*640 +v][label] = prob for this label;
+          }
         }
       }
 
@@ -517,6 +542,8 @@ class PeoplePCDApp
     PeopleDetector people_detector_;
     PeopleDetector::Image cmap_device_;
     pcl::PointCloud<pcl::RGB> cmap_host_;
+    PeopleDetector::Image prob_device_;
+    pcl::PointCloud<pcl::RGB> prob_host_;
 
     PeopleDetector::Depth depth_device_;
     PeopleDetector::Image image_device_;
@@ -529,6 +556,8 @@ class PeoplePCDApp
 
     ImageViewer final_view_;
     ImageViewer depth_view_;
+    ImageViewer prob_view_;
+
     PCLPlotter  histogram_view_;
     PCLVisualizer cloud_view_;
 
