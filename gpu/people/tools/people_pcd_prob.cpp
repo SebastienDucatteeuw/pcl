@@ -319,7 +319,7 @@ int main(int argc, char** argv)
   }
   PCL_DEBUG("[Main] : (D) : Read %d Trees\n", numTrees);
 
-  std::string pcdname("/home/u0062536/Data/pcd/koen.pcd");
+  std::string pcdname("test.pcd");
   parse_argument (argc, argv, "-pcd", pcdname);
 
   PCL_DEBUG("[Main] : (D) : Will read %s\n", pcdname.c_str());
