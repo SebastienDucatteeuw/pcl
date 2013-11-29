@@ -178,8 +178,6 @@ class PeoplePCDApp
       prob_device_.create(ROWS, COLS);
 
       depth_host_.points.resize(COLS * ROWS);
-      prob_host_.points.resize(COLS * ROWS);
-
       rgba_host_.points.resize(COLS * ROWS);
       rgb_host_.resize(COLS * ROWS * 3);
 
@@ -219,6 +217,23 @@ class PeoplePCDApp
         if (setRef_[i] == true)
           s++;
       return (s == tracker_list_.size ());
+    }
+
+    void
+    convertProbToRGB (pcl::PointCloud<pcl::device::prob_histogram>& histograms, int label, pcl::PointCloud<pcl::RGB>& rgb)
+    {
+      rgb.points.clear ();
+      for(size_t t; t < histograms.points.size(); t++)
+      {
+        float value = histograms.points[t].probs[label];
+        float value8 = value * 255;
+        char val = static_cast<char> (value8);
+        pcl::RGB p;
+        p.r = val; p.b = val; p.g = val;
+        rgb.points.push_back(p);
+      }
+      rgb.width = histograms.width;
+      rgb.height = histograms.height;
     }
 
     // Draw the current particles
@@ -321,7 +336,12 @@ class PeoplePCDApp
       histogram_view_.spinOnce ();
 
       //---- Draw probability distribution
-      //prob_view_.showRGBImage<pcl::RGB> (prob_host_);
+      pcl::PointCloud<pcl::device::prob_histogram> prob_host2(people_detector_.rdf_detector_->P_l_2_.cols(), people_detector_.rdf_detector_->P_l_2_.rows());
+      people_detector_.rdf_detector_->P_l_2_.download(prob_host2.points, c);
+      prob_host2.width = people_detector_.rdf_detector_->P_l_2_.cols();
+      prob_host2.height = people_detector_.rdf_detector_->P_l_2_.rows();
+      convertProbToRGB(prob_host2, 13, prob_host_); //get prob 2nd iter of Rforearm
+      prob_view_.showRGBImage<pcl::RGB> (prob_host_);
       prob_view_.spinOnce(1, true);
     }
 
@@ -508,7 +528,7 @@ class PeoplePCDApp
             if(has_data)
             {
               SampledScopeTime fps(time_ms_);
-              process_return_ = people_detector_.process (cloud_host_);
+              process_return_ = people_detector_.processProb (cloud_host_);
               track ();
               ++counter_;
             }
