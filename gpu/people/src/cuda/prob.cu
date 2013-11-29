@@ -253,7 +253,7 @@ namespace pcl
                                         Labels& labels,
                                         LabelProbability& probabilities)
     {
-      std::cout << "[pcl::device::ProbabilityProc::CUDA_SelectLabel] : (I) : Called" << std::endl;
+      //std::cout << "[pcl::device::ProbabilityProc::CUDA_SelectLabel] : (I) : Called" << std::endl;
       //labels.create(depth.rows(), depth.cols());
       //probabilities.create(depth.rows(), depth.cols());
 
@@ -329,7 +329,7 @@ namespace pcl
       if(kernel.size()/sizeof(float) % 2 == 0) //kernelSize is even, should be odd
         return -1;
 
-      std::cout << "[pcl::device::ProbabilityProc::CUDA_GaussianBlur] : (I) : called c: " << probIn.cols() << " r: " << probIn.rows() << std::endl;
+      //std::cout << "[pcl::device::ProbabilityProc::CUDA_GaussianBlur] : (I) : called c: " << probIn.cols() << " r: " << probIn.rows() << std::endl;
       //PCL_INFO("[pcl::device::ProbabilityProc::CUDA_GaussianBlur] : (I) : called c: %d r: %d\n", probIn.cols(), probIn.rows());
 
       // CUDA kernel call Vertical

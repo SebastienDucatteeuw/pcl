@@ -367,6 +367,8 @@ pcl::gpu::people::PeopleDetector::processProb ()
     // Backup this value in P_l_2_;
     rdf_detector_->P_l_2_.swap(rdf_detector_->P_l_);
 
+//std::cout << rdf_detector_->P_l_2_ << std::endl;
+
     const RDFBodyPartsDetector::BlobMatrix& sorted2 = rdf_detector_->getBlobMatrix();
 
     //brief Test if the second tree is build up correctly
@@ -375,6 +377,7 @@ pcl::gpu::people::PeopleDetector::processProb ()
       Tree2 t2;
       buildTree(sorted2, cloud_host_, Neck, c, t2, person_attribs_);
       int par = 0;
+/*
       for(int f = 0; f < NUM_PARTS; f++)
       {
         if(t2.parts_lid[f] == NO_CHILD)
@@ -386,6 +389,7 @@ pcl::gpu::people::PeopleDetector::processProb ()
            cerr << "0;";
       }
       std::cerr << std::endl;
+*/
       static int counter = 0; // TODO move this logging to PeopleApp
 
       //cerr << t2.nr_parts << ";" << par << ";" << t2.total_dist_error << ";" << t2.norm_dist_error << ";" << counter++ << ";" << endl;

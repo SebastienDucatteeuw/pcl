@@ -295,7 +295,7 @@ pcl::gpu::people::RDFBodyPartsDetector::processSmooth (const pcl::device::Depth&
 
   // This was sort indices to blob (sortIndicesToBlob2) method (till line 236)
   {
-    ScopeTime time("[pcl::gpu::people::RDFBodyPartsDetector::processSmooth] : cvt");
+    //ScopeTime time("[pcl::gpu::people::RDFBodyPartsDetector::processSmooth] : cvt");
     std::fill(remap_.begin(), remap_.end(), -1);
     std::fill(region_sizes_.begin(), region_sizes_.end(), 0);
 

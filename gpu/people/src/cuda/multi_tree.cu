@@ -333,7 +333,7 @@ namespace pcl
                                  Labels& labels,
                                  LabelProbability& probabilities)
     {
-      std::cout << "(I) : CUDA_runMultiTreeProb() called" << std::endl;
+      //std::cout << "(I) : CUDA_runMultiTreeProb() called" << std::endl;
 
       //labels.create(depth.rows(), depth.cols());
       //depthTex.addressMode[0] = cudaAddressModeClamp;
