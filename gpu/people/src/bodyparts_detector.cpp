@@ -80,7 +80,7 @@ pcl::gpu::people::RDFBodyPartsDetector::RDFBodyPartsDetector( const vector<strin
 ////////////////////////////////////////////////////////////////////////////////////
 /// getters
 
-size_t 
+size_t
 pcl::gpu::people::RDFBodyPartsDetector::getNumberTrees() const
 {
   return impl_->trees.size();
@@ -108,6 +108,12 @@ const pcl::device::LabelProbability&
 pcl::gpu::people::RDFBodyPartsDetector::getProbability2() const
 {
   return P_l_2_;
+}
+
+const pcl::device::LabelProbability&
+pcl::gpu::people::RDFBodyPartsDetector::getProbabilityExt() const
+{
+  return P_l_ext_;
 }
 
 const pcl::device::LabelProbability&
@@ -144,6 +150,7 @@ pcl::gpu::people::RDFBodyPartsDetector::allocate_buffers(int rows, int cols)
   P_l_Gaus_Temp_.create(rows,cols);
   P_l_1_.create(rows,cols);
   P_l_2_.create(rows,cols);
+  P_l_ext_.create(rows,cols);
   P_l_prev_1_.create(rows,cols);
   P_l_prev_2_.create(rows,cols);
 

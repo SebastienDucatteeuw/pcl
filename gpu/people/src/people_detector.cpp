@@ -309,9 +309,13 @@ pcl::gpu::people::PeopleDetector::processProb ()
     for(int i = 0; i < kernel_size; i++)
       PCL_DEBUG("\t Entry %d \t: %lf\n", i, kernel_ptr_host[i]);
 
-    if(probability_processor_->GaussianBlur(depth_device1_,rdf_detector_->P_l_2_, kernel_device, rdf_detector_->P_l_Gaus_Temp_ ,rdf_detector_->P_l_Gaus_) != 1)
+    if(probability_processor_->GaussianBlur(depth_device1_, rdf_detector_->P_l_2_, kernel_device, rdf_detector_->P_l_Gaus_Temp_, rdf_detector_->P_l_Gaus_) != 1)
       PCL_ERROR("[pcl::gpu::people::PeopleDetector::processProb] : (E) : Gaussian Blur failed\n");
-
+/*
+    // blur external probability distribution
+    if(probability_processor_->GaussianBlur(depth_device1_, rdf_detector_->P_l_ext_, kernel_device, rdf_detector_->P_l_Gaus_Temp_, rdf_detector_->P_l_ext_Gaus_) != 1)
+      PCL_ERROR("[pcl::gpu::people::PeopleDetector::processProb] : (E) : Gaussian Blur failed\n");
+*/
     // merge with prior probabilities at this line
     probability_processor_->CombineProb(depth_device1_, rdf_detector_->P_l_Gaus_, 0.5, rdf_detector_->P_l_, 0.5, rdf_detector_->P_l_Gaus_Temp_);
     PCL_DEBUG("[pcl::gpu::people::PeopleDetector::processProb] : (D) : CombineProb called\n");
@@ -367,32 +371,31 @@ pcl::gpu::people::PeopleDetector::processProb ()
     // Backup this value in P_l_2_;
     rdf_detector_->P_l_2_.swap(rdf_detector_->P_l_);
 
-//std::cout << rdf_detector_->P_l_2_ << std::endl;
-
     const RDFBodyPartsDetector::BlobMatrix& sorted2 = rdf_detector_->getBlobMatrix();
 
     //brief Test if the second tree is build up correctly
     if(sorted2[Neck].size() != 0)
     {
-      Tree2 t2;
-      buildTree(sorted2, cloud_host_, Neck, c, t2, person_attribs_);
+      //Tree2 t2;
+      buildTree(sorted2, cloud_host_, Neck, c, t2_, person_attribs_);
+
       int par = 0;
-/*
+
       for(int f = 0; f < NUM_PARTS; f++)
-      {
+      {/*
         if(t2.parts_lid[f] == NO_CHILD)
         {
           cerr << "1;";
           par++;
         }
         else
-           cerr << "0;";
+           cerr << "0;";*/
       }
-      std::cerr << std::endl;
-*/
+      //std::cerr << std::endl;
+
       static int counter = 0; // TODO move this logging to PeopleApp
 
-      //cerr << t2.nr_parts << ";" << par << ";" << t2.total_dist_error << ";" << t2.norm_dist_error << ";" << counter++ << ";" << endl;
+      //cerr << t2_.nr_parts << ";" << par << ";" << t2_.total_dist_error << ";" << t2_.norm_dist_error << ";" << counter++ << ";" << endl;
       first_iteration_ = false;
       return 2;
     }

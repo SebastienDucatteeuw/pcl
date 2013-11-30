@@ -78,7 +78,7 @@ using namespace pcl;
 using namespace std;
 
 std::vector <double> bins(361);
-int num_of_trackers = 3;
+int num_of_trackers = 1;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -199,6 +199,7 @@ class PeoplePCDApp
         color_ [2][2] = 0;
       }
 
+      // tracker-part map
       limbs_ [0] = 13; //Rforearm
       limbs_ [1] = 17; //Lforearm
       limbs_ [2] = 23; //Rchest
@@ -336,6 +337,7 @@ class PeoplePCDApp
       histogram_view_.spinOnce ();
 
       //---- Draw probability distribution
+/*
       pcl::PointCloud<pcl::device::prob_histogram> prob_host2(people_detector_.rdf_detector_->P_l_2_.cols(), people_detector_.rdf_detector_->P_l_2_.rows());
       people_detector_.rdf_detector_->P_l_2_.download(prob_host2.points, c);
       prob_host2.width = people_detector_.rdf_detector_->P_l_2_.cols();
@@ -343,17 +345,56 @@ class PeoplePCDApp
       convertProbToRGB(prob_host2, 13, prob_host_); //get prob 2nd iter of Rforearm
       prob_view_.showRGBImage<pcl::RGB> (prob_host_);
       prob_view_.spinOnce(1, true);
+*/
+      pcl::PointCloud<pcl::device::prob_histogram> prob_host2(people_detector_.rdf_detector_->P_l_ext_.cols(), people_detector_.rdf_detector_->P_l_ext_.rows());
+      people_detector_.rdf_detector_->P_l_ext_Gaus_.download(prob_host2.points, c);
+      prob_host2.width = people_detector_.rdf_detector_->P_l_ext_.cols();
+      prob_host2.height = people_detector_.rdf_detector_->P_l_ext_.rows();
+      convertProbToRGB(prob_host2, 13, prob_host_);
+      prob_view_.showRGBImage<pcl::RGB> (prob_host_);
+      prob_view_.spinOnce(1, true);
+    }
+
+    void
+    processProbPF ()
+    {
+      int cols = people_detector_.rdf_detector_->P_l_2_.cols();
+      int u, v;
+      pcl::PointCloud<pcl::device::prob_histogram> prob_PF (people_detector_.rdf_detector_->P_l_2_.cols(), people_detector_.rdf_detector_->P_l_2_.rows());
+      static const float cx = 320-.5;
+      static const float cy = 240-.5;
+      static const float f = 525;
+
+      if (setRefDone ())
+      {
+        // build a probability distribution for each part
+        for (int i = 0; i < tracker_list_.size (); i++)
+        {
+          pcl::PointCloud<pcl::tracking::ParticleXYZRPY>::Ptr particles = tracker_list_[i].getParticles ();
+          if (particles)
+          {
+            for (int j = 0; j < particles->points.size (); j++)
+            {
+              u = static_cast<int> (f*(particles->points[j].x/particles->points[j].z) + cx);
+              v = static_cast<int> (f*(particles->points[j].y/particles->points[j].z) + cy);
+              int index = u + v*640;
+              if (index >= 0 && index < 307200)
+              {
+                prob_PF.points[index].probs[limbs_[i]] = 1; //particles->points[j].weight;
+              }
+            }
+          }
+        }
+        people_detector_.rdf_detector_->P_l_ext_.upload(prob_PF.points, cols);
+      }
     }
 
     void
     track ()
     {
       const people::RDFBodyPartsDetector::BlobMatrix& sorted = people_detector_.rdf_detector_->getBlobMatrix ();
-      static const float cx = 320-.5;
-      static const float cy = 240-.5;
-      static const float f = 525;
 
-      // Initialize colormodel and state for each limb
+      // Initialize colormodel and state for each part
       if (!setRefDone ())
       {
         pcl::PointCloud<pcl::PointXYZRGBA> segmented_cloud;
@@ -453,14 +494,6 @@ class PeoplePCDApp
         {
           tracker_list_[i].setInputCloud (cloud_host_);
           tracker_list_[i].compute ();
-          // build probability distribution
-          pcl::PointCloud<pcl::tracking::ParticleXYZRPY>::Ptr particles = tracker_list_[i].getParticles ();
-          for (int i = 0; i < particles->points.size (); i++)
-          {
-            //int u = static_cast<int> (f*(point.x/point.z) + cx);
-            //int v = static_cast<int> (f*(point.y/point.z) + cy);
-            //prob_device_[u*640 +v][label] = prob for this label;
-          }
         }
       }
 
@@ -528,8 +561,12 @@ class PeoplePCDApp
             if(has_data)
             {
               SampledScopeTime fps(time_ms_);
-              process_return_ = people_detector_.processProb (cloud_host_);
+              if (setRefDone ())
+                process_return_ = people_detector_.processProb (cloud_host_);
+              else
+                process_return_ = people_detector_.process (cloud_host_);
               track ();
+              processProbPF ();
               ++counter_;
             }
             if(has_data && (process_return_ == 2))

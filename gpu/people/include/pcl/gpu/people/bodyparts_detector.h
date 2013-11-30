@@ -67,7 +67,7 @@ namespace pcl
         public:
           typedef boost::shared_ptr<RDFBodyPartsDetector> Ptr;          
           typedef std::vector<std::vector<Blob2, Eigen::aligned_allocator<Blob2> > > BlobMatrix;
-          
+
           typedef DeviceArray2D<unsigned char> Labels;
           typedef DeviceArray2D<unsigned short> Depth;
           typedef DeviceArray2D<pcl::RGB> Image;
@@ -111,12 +111,13 @@ namespace pcl
           const pcl::device::LabelProbability& getProbability() const;
           const pcl::device::LabelProbability& getProbability1() const;
           const pcl::device::LabelProbability& getProbability2() const;
+          const pcl::device::LabelProbability& getProbabilityExt() const;
           const pcl::device::LabelProbability& getPrevProbability1() const;
           const pcl::device::LabelProbability& getPrevProbability2() const;
+
           size_t getNumberTrees() const;
           const BlobMatrix& getBlobMatrix() const;
 
-          
           /** \brief This contains the final body part labels **/
           Labels labels_;
           /** \brief This contains the smoothed final body part labels **/
@@ -128,6 +129,8 @@ namespace pcl
           pcl::device::LabelProbability P_l_Gaus_Temp_;   // the current Gaussian buffer to store the intermediate
           pcl::device::LabelProbability P_l_1_;           // storage for the first iteration
           pcl::device::LabelProbability P_l_2_;           // storage for the second iteration
+          pcl::device::LabelProbability P_l_ext_;         // storage for the external histograms
+          pcl::device::LabelProbability P_l_ext_Gaus_;    // storage for the blurred external histograms
 
           /** These contain the histograms of the labels for this detector of the previous timestep **/
           pcl::device::LabelProbability P_l_prev_1_;  // for the first iteration
