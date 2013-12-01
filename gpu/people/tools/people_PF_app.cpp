@@ -227,7 +227,13 @@ class PeoplePCDApp
       for(size_t t; t < histograms.points.size(); t++)
       {
         float value = histograms.points[t].probs[label];
-        float value8 = value * 255;
+        float value8;
+/*
+        if (value > 1)
+          value8 = 255;
+        else
+*/
+          value8 = value * 255;
         char val = static_cast<char> (value8);
         pcl::RGB p;
         p.r = val; p.b = val; p.g = val;
@@ -347,12 +353,13 @@ class PeoplePCDApp
       prob_view_.spinOnce(1, true);
 */
       pcl::PointCloud<pcl::device::prob_histogram> prob_host2(people_detector_.rdf_detector_->P_l_ext_.cols(), people_detector_.rdf_detector_->P_l_ext_.rows());
-      people_detector_.rdf_detector_->P_l_ext_Gaus_.download(prob_host2.points, c);
+      people_detector_.rdf_detector_->P_l_ext_.download(prob_host2.points, c);
       prob_host2.width = people_detector_.rdf_detector_->P_l_ext_.cols();
       prob_host2.height = people_detector_.rdf_detector_->P_l_ext_.rows();
       convertProbToRGB(prob_host2, 13, prob_host_);
       prob_view_.showRGBImage<pcl::RGB> (prob_host_);
       prob_view_.spinOnce(1, true);
+      savePNGFile ("prob_distr.png", prob_host_);
     }
 
     void
@@ -368,6 +375,8 @@ class PeoplePCDApp
       if (setRefDone ())
       {
         // build a probability distribution for each part
+        // plot particles only
+/*
         for (int i = 0; i < tracker_list_.size (); i++)
         {
           pcl::PointCloud<pcl::tracking::ParticleXYZRPY>::Ptr particles = tracker_list_[i].getParticles ();
@@ -384,6 +393,65 @@ class PeoplePCDApp
               }
             }
           }
+        }
+*/
+        // Apply KDE (Kernel Density Estimation)
+        int u_particle, v_particle, index;
+        float a, b, prob;
+        // Set the bandwidth h
+        int hu = 5;
+        int hv = 5;
+        int margin = 10;
+        float coef = 0.1592; // 1/(2*pi)
+        int u_start = 0;
+        int u_end = people_detector_.rdf_detector_->P_l_ext_.cols();
+        int v_start = 0;
+        int v_end = people_detector_.rdf_detector_->P_l_ext_.rows();
+        for (int i = 0; i < tracker_list_.size (); i++)
+        {
+          float cum_prob = 0;
+          pcl::PointCloud<pcl::tracking::ParticleXYZRPY>::Ptr particles = tracker_list_[i].getParticles ();
+          if (particles)
+          {
+            for (int j = 0; j < particles->points.size (); j++)
+            {
+              u_particle = static_cast<int> (f*(particles->points[j].x/particles->points[j].z) + cx);
+              v_particle = static_cast<int> (f*(particles->points[j].y/particles->points[j].z) + cy);
+              // Minimize for-loop cycles
+              if (u_particle > margin*hu)            // check left side
+                u_start = u_particle - (margin*hu);  // we can take some advantage at the left side
+              if (u_particle < (u_end - margin*hu))  // check right side
+                u_end = u_particle + (margin*hu);    // we can take some advantage at the right side
+              if (v_particle > margin*hv)            // check top side
+                v_start = v_particle - (margin*hv);  // we can take some advantage at the top side
+              if (v_particle < (v_end - margin*hv))  // check bottom side
+                v_end = v_particle + (margin*hv);    // we can take some advantage at the bottom side
+
+              for (int u = u_start; u < u_end; u++)    // iter horizontal
+              {
+                for (int v = v_start; v < v_end; v++)  // iter vertical
+                {
+                  a = (u-u_particle)/hu;
+                  b = (v-v_particle)/hv;
+                  index = u + v*people_detector_.rdf_detector_->P_l_ext_.cols();
+                  if (index >= 0 && index < 307200)
+                  {
+                    prob = coef * std::exp(- (std::pow(a, 2) + std::pow(b, 2)) / 2);
+                    cum_prob += prob;
+                    prob_PF.points[index].probs[limbs_[i]] += prob;
+                  }
+                }
+              }
+            }
+          }
+/*
+          // normalize prob. distr.
+          //std::cout << "cum_prob: " << cum_prob << std::endl;
+          for (int index = 0; index < prob_PF.points.size (); index++)    // iter horizontal
+          {
+                prob_PF.points[index].probs[limbs_[i]] /= cum_prob;
+          }
+*/
         }
         people_detector_.rdf_detector_->P_l_ext_.upload(prob_PF.points, cols);
       }

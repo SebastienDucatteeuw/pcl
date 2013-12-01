@@ -311,11 +311,11 @@ pcl::gpu::people::PeopleDetector::processProb ()
 
     if(probability_processor_->GaussianBlur(depth_device1_, rdf_detector_->P_l_2_, kernel_device, rdf_detector_->P_l_Gaus_Temp_, rdf_detector_->P_l_Gaus_) != 1)
       PCL_ERROR("[pcl::gpu::people::PeopleDetector::processProb] : (E) : Gaussian Blur failed\n");
-/*
+
     // blur external probability distribution
     if(probability_processor_->GaussianBlur(depth_device1_, rdf_detector_->P_l_ext_, kernel_device, rdf_detector_->P_l_Gaus_Temp_, rdf_detector_->P_l_ext_Gaus_) != 1)
       PCL_ERROR("[pcl::gpu::people::PeopleDetector::processProb] : (E) : Gaussian Blur failed\n");
-*/
+
     // merge with prior probabilities at this line
     probability_processor_->CombineProb(depth_device1_, rdf_detector_->P_l_Gaus_, 0.5, rdf_detector_->P_l_, 0.5, rdf_detector_->P_l_Gaus_Temp_);
     PCL_DEBUG("[pcl::gpu::people::PeopleDetector::processProb] : (D) : CombineProb called\n");

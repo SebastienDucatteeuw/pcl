@@ -151,6 +151,7 @@ pcl::gpu::people::RDFBodyPartsDetector::allocate_buffers(int rows, int cols)
   P_l_1_.create(rows,cols);
   P_l_2_.create(rows,cols);
   P_l_ext_.create(rows,cols);
+  P_l_ext_Gaus_.create(rows,cols);
   P_l_prev_1_.create(rows,cols);
   P_l_prev_2_.create(rows,cols);
 
