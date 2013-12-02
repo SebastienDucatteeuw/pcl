@@ -288,7 +288,7 @@ pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::computeTracking ()
     StateT p = particles_->points[i];
     representative_state_ = representative_state_ + p * p.weight;
   }
-/*
+
   // update colormodel
   histogramCoherence_.setInputCloud (input_);
   histogramCoherence_.setClusterRadius (0.03);
@@ -296,7 +296,7 @@ pcl::tracking::ParticleFilterTrackerHist<PointInT, StateT>::computeTracking ()
   histogramCoherence_.compute (representative_state_);
   histogramCoherence_.setUpdateReferenceHistogram (false);
   histogramCoherence_.setClusterRadius (0.02);
-*/
+
 }
 /*
 prediction step       (proposal via motion model + noise)

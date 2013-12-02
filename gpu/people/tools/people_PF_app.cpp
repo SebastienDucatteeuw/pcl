@@ -150,7 +150,7 @@ class PeoplePCDApp
         prob_view_ ("Probability distribution arm"),
         hist_ref_ (num_of_trackers, std::vector<float> (361)),
         hist_ref_double_ (num_of_trackers, std::vector<double> (361)),
-        limbs_ (3),
+        tracker_parts_ (num_of_trackers, std::vector<int> (32)),
         tracker_list_ (num_of_trackers),
         setRef_ (num_of_trackers, false),
         color_ (num_of_trackers, std::vector<float> (3)),
@@ -165,7 +165,7 @@ class PeoplePCDApp
       final_view_.setPosition (1280, 0);
       depth_view_.setPosition (0, 0);
       cloud_view_.setPosition (640, 0);
-      prob_view_.setPosition (0, 0);
+      prob_view_.setPosition (1208, 520);
 
       histogram_view_.setShowLegend (true);
       histogram_view_.setXRange (0, 361);
@@ -188,9 +188,9 @@ class PeoplePCDApp
       color_ [0][2] = 0;
       if (num_of_trackers >= 2)
       {
-      color_ [1][0] = 0;
-      color_ [1][1] = 250;
-      color_ [1][2] = 255;
+        color_ [1][0] = 0;
+        color_ [1][1] = 250;
+        color_ [1][2] = 255;
       }
       if (num_of_trackers >= 3)
       {
@@ -199,10 +199,20 @@ class PeoplePCDApp
         color_ [2][2] = 0;
       }
 
-      // tracker-part map
-      limbs_ [0] = 13; //Rforearm
-      limbs_ [1] = 17; //Lforearm
-      limbs_ [2] = 23; //Rchest
+      // ---- tracker-parts map ----
+      // tracker 0 tracks part 13 (Rforearm)
+      tracker_parts_ [0][13] = 1;
+      // tracker 1 tracks part 17 (Lforearm)
+      if (num_of_trackers >= 2)
+      {
+        tracker_parts_ [1][17] = 1;
+      }
+      // tracker 2 tracks part 23 (Rchest) and part 24 (Lchest)
+      if (num_of_trackers >= 3)
+      {
+        tracker_parts_ [2][23] = 1;
+        tracker_parts_ [2][24] = 1;
+      }
 /*
       //fill prob_host_ with zeros
       for (int i = 0; i < prob_host_.points.size (); i++)
@@ -227,13 +237,7 @@ class PeoplePCDApp
       for(size_t t; t < histograms.points.size(); t++)
       {
         float value = histograms.points[t].probs[label];
-        float value8;
-/*
-        if (value > 1)
-          value8 = 255;
-        else
-*/
-          value8 = value * 255;
+        float  value8 = value * 255;
         char val = static_cast<char> (value8);
         pcl::RGB p;
         p.r = val; p.b = val; p.g = val;
@@ -309,13 +313,14 @@ class PeoplePCDApp
       final_view_.spinOnce(1, true);
 
       //---- Draw depth view ----
+/*
       depth_host_.width = people_detector_.depth_device1_.cols();
       depth_host_.height = people_detector_.depth_device1_.rows();
       depth_host_.points.resize(depth_host_.width * depth_host_.height);
       people_detector_.depth_device1_.download(depth_host_.points, c);
       depth_view_.showShortImage(&depth_host_.points[0], depth_host_.width, depth_host_.height, 0, 5000, true);
       depth_view_.spinOnce(1, true);
-
+*/
       //---- Draw cloud view ----
       // 1) draw input cloud
       if (!cloud_view_.updatePointCloud (cloud_host_, "Input PointCloud"))
@@ -359,7 +364,13 @@ class PeoplePCDApp
       convertProbToRGB(prob_host2, 13, prob_host_);
       prob_view_.showRGBImage<pcl::RGB> (prob_host_);
       prob_view_.spinOnce(1, true);
-      savePNGFile ("prob_distr.png", prob_host_);
+      //savePNGFile ("prob_distr.png", prob_host_);
+/*
+float tot_prob = 0;
+for (int i = 0; i < 32; i++)
+  tot_prob += prob_host2.points[1250].probs[i];
+std::cout << "prob" << prob_host2.points[1250].probs[i] << std::endl;
+*/
     }
 
     void
@@ -375,8 +386,8 @@ class PeoplePCDApp
       if (setRefDone ())
       {
         // build a probability distribution for each part
-        // plot particles only
 /*
+        // plot particles only
         for (int i = 0; i < tracker_list_.size (); i++)
         {
           pcl::PointCloud<pcl::tracking::ParticleXYZRPY>::Ptr particles = tracker_list_[i].getParticles ();
@@ -389,7 +400,7 @@ class PeoplePCDApp
               int index = u + v*640;
               if (index >= 0 && index < 307200)
               {
-                prob_PF.points[index].probs[limbs_[i]] = 1; //particles->points[j].weight;
+                prob_PF.points[index].probs[tracker_parts_[i]] = 1; //particles->points[j].weight;
               }
             }
           }
@@ -399,22 +410,29 @@ class PeoplePCDApp
         int u_particle, v_particle, index;
         float a, b, prob;
         // Set the bandwidth h
-        int hu = 5;
-        int hv = 5;
-        int margin = 10;
+        int hu = 10;
+        int hv = 10;
+        int margin = 3;
         float coef = 0.1592; // 1/(2*pi)
-        int u_start = 0;
-        int u_end = people_detector_.rdf_detector_->P_l_ext_.cols();
-        int v_start = 0;
-        int v_end = people_detector_.rdf_detector_->P_l_ext_.rows();
+        int u_start, u_end, v_start, v_end;
+/*
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(0)
+#endif
+*/
         for (int i = 0; i < tracker_list_.size (); i++)
         {
           float cum_prob = 0;
           pcl::PointCloud<pcl::tracking::ParticleXYZRPY>::Ptr particles = tracker_list_[i].getParticles ();
           if (particles)
           {
-            for (int j = 0; j < particles->points.size (); j++)
+            for (int j = 0; j < 10; j++) // particles->points.size ()
             {
+              u_start = 0;
+              u_end = people_detector_.rdf_detector_->P_l_ext_.cols();
+              v_start = 0;
+              v_end = people_detector_.rdf_detector_->P_l_ext_.rows();
+
               u_particle = static_cast<int> (f*(particles->points[j].x/particles->points[j].z) + cx);
               v_particle = static_cast<int> (f*(particles->points[j].y/particles->points[j].z) + cy);
               // Minimize for-loop cycles
@@ -437,8 +455,22 @@ class PeoplePCDApp
                   if (index >= 0 && index < 307200)
                   {
                     prob = coef * std::exp(- (std::pow(a, 2) + std::pow(b, 2)) / 2);
-                    cum_prob += prob;
-                    prob_PF.points[index].probs[limbs_[i]] += prob;
+                    for (int label = 0; label < tracker_parts_[i].size (); label++) //loop over labels to be tracked by tracker i
+                    {
+                      if (tracker_parts_[i][label] == 1) // assign the probs only to the labels tracked by tracker i
+                      {
+                        if (prob_PF.points[index].probs[label]+prob < 1) // no probs > 1
+                        {
+                          prob_PF.points[index].probs[label] += prob;
+                          cum_prob += prob;
+                        }
+                        else
+                        {
+                          cum_prob += 1-prob_PF.points[index].probs[label];
+                          prob_PF.points[index].probs[label] = 1;
+                        }
+                      }
+                    }
                   }
                 }
               }
@@ -446,10 +478,10 @@ class PeoplePCDApp
           }
 /*
           // normalize prob. distr.
-          //std::cout << "cum_prob: " << cum_prob << std::endl;
+          std::cout << "cum_prob: " << cum_prob << std::endl;
           for (int index = 0; index < prob_PF.points.size (); index++)    // iter horizontal
           {
-                prob_PF.points[index].probs[limbs_[i]] /= cum_prob;
+                prob_PF.points[index].probs[tracker_parts_[i]] /= cum_prob;
           }
 */
         }
@@ -470,86 +502,94 @@ class PeoplePCDApp
         pcl::ExtractIndices<pcl::PointXYZRGBA> extract;
         for (int i = 0; i < tracker_list_.size (); i++)
         {
-          if (people_detector_.t2_.parts_lid[limbs_[i]] != -3);
+          for (int label = 0; label < tracker_parts_[i].size (); label++)
           {
-            pcl::PointIndices::Ptr indicesPtr (new pcl::PointIndices);
-            indicesPtr->indices = sorted[limbs_[i]][people_detector_.t2_.parts_lid[limbs_[i]]].indices.indices;
-
-            //calculate initial state
-            Eigen::Vector4f mean = sorted[limbs_[i]][people_detector_.t2_.parts_lid[limbs_[i]]].mean; //Rforearm
-            Eigen::Vector3f c;
-            Eigen::Affine3f trans;
-            c[0] = mean(0);
-            c[1] = mean(1);
-            c[2] = mean(2);
-            trans.translation ().matrix () = c;
-
-            //calculate initial colormodel
-            std::vector<float> reference_histogram (361);
-            std::vector<float> reference_histogram_tmp (361);
-
-            //Replace wrong indices with zeros
-            int n = 0;
-            for (int i = 0; i < indicesPtr->indices.size (); i++)
+            if (tracker_parts_[i][label] == 1)
             {
-              if ((indicesPtr->indices[i] > 307199) || (indicesPtr->indices[i] < 0))
+              if (people_detector_.t2_.parts_lid[label] != -3);
               {
-                indicesPtr->indices[i] = 0;
+                pcl::PointIndices::Ptr indicesPtr (new pcl::PointIndices);
+                indicesPtr->indices = sorted[label][people_detector_.t2_.parts_lid[label]].indices.indices;
+
+                //calculate initial state
+                Eigen::Vector4f mean = sorted[label][people_detector_.t2_.parts_lid[label]].mean; //Rforearm
+                Eigen::Vector3f c;
+                Eigen::Affine3f trans;
+                c[0] = mean(0);
+                c[1] = mean(1);
+                c[2] = mean(2);
+                trans.translation ().matrix () = c;
+
+                //calculate initial colormodel
+                std::vector<float> reference_histogram (361);
+                std::vector<float> reference_histogram_tmp (361);
+
+                //Replace wrong indices with zeros
+                int n = 0;
+                for (int i = 0; i < indicesPtr->indices.size (); i++)
+                {
+                  if ((indicesPtr->indices[i] > 307199) || (indicesPtr->indices[i] < 0))
+                  {
+                    indicesPtr->indices[i] = 0;
+                  }
+                }
+
+                /* Save indices to file
+                std::string filename = "/tmp/track_log.txt";
+                std::ofstream writefile;
+                writefile.open (filename.c_str()); //, ios::out | ios::app); //add to append the file
+                writefile << "Frame number: " << counter_ << std::endl;
+                for (int i = 0; i < indicesPtr->indices.size (); i++)
+                {
+                  writefile << indicesPtr->indices[i] << std::endl;
+                }
+                writefile.close ();
+                */
+
+                extract.setInputCloud (cloud_host_);
+                extract.setIndices (indicesPtr);
+                extract.setNegative (false);
+                extract.filter (segmented_cloud);
+
+                /* Only show Rforearm in cloud_view
+                pcl::PointCloud<pcl::PointXYZRGBA>::Ptr segPtr (new pcl::PointCloud<pcl::PointXYZRGBA> (segmented_cloud));
+                if (!cloud_view_.updatePointCloud (segPtr, "Segmented PointCloud"))
+                {
+                  cloud_view_.resetCameraViewpoint ("Segmented PointCloud");
+                  cloud_view_.addPointCloud (segPtr, "Segmented PointCloud");
+                }
+                cloud_view_.spinOnce (1, true);
+                */
+
+                PointCloudXYZRGBAtoXYZHSV (segmented_cloud, segmented_cloud_HSV);
+                histogramStatistics_.computeHue (segmented_cloud_HSV, reference_histogram_tmp);
+
+                if (counter_ < 10) //skip first 10 frames to avoid unreliable measurements
+                {
+                  tracker_list_[i].setReferenceHistogram (reference_histogram_tmp);
+                }
+
+                std::vector<float> reference_histogram_old = tracker_list_[i].getReferenceHistogram ();
+                if (counter_ >= 10) //build the colormodel on reliable measurements
+                {
+                  float alpha = 0.3;
+                  for (int i = 0; i < reference_histogram.size (); i++)
+                  {
+                    reference_histogram[i] = static_cast<float> ( ((1-alpha) * reference_histogram_old[i]) + (alpha * reference_histogram_tmp[i]) );
+                  }
+                  tracker_list_[i].setReferenceHistogram (reference_histogram);
+                }
+
+                if (counter_ >= 10 && (histogramCoherence_.BhattacharyyaDistance(reference_histogram, reference_histogram_old) > 0.8 ))
+                {
+                  //set initial state
+                  tracker_list_[i].setTrans (trans);
+                  std::cout << "Reference colormodel " << i << " has been set." << std::endl;
+                  setRef_[i] = true;
+                }
               }
-            }
-
-            /* Save indices to file
-            std::string filename = "/tmp/track_log.txt";
-            std::ofstream writefile;
-            writefile.open (filename.c_str()); //, ios::out | ios::app); //add to append the file
-            writefile << "Frame number: " << counter_ << std::endl;
-            for (int i = 0; i < indicesPtr->indices.size (); i++)
-            {
-              writefile << indicesPtr->indices[i] << std::endl;
-            }
-            writefile.close ();
-            */
-
-            extract.setInputCloud (cloud_host_);
-            extract.setIndices (indicesPtr);
-            extract.setNegative (false);
-            extract.filter (segmented_cloud);
-
-            /* Only show Rforearm in cloud_view
-            pcl::PointCloud<pcl::PointXYZRGBA>::Ptr segPtr (new pcl::PointCloud<pcl::PointXYZRGBA> (segmented_cloud));
-            if (!cloud_view_.updatePointCloud (segPtr, "Segmented PointCloud"))
-            {
-              cloud_view_.resetCameraViewpoint ("Segmented PointCloud");
-              cloud_view_.addPointCloud (segPtr, "Segmented PointCloud");
-            }
-            cloud_view_.spinOnce (1, true);
-            */
-
-            PointCloudXYZRGBAtoXYZHSV (segmented_cloud, segmented_cloud_HSV);
-            histogramStatistics_.computeHue (segmented_cloud_HSV, reference_histogram_tmp);
-
-            if (counter_ < 10) //skip first 10 frames to avoid unreliable measurements
-            {
-              tracker_list_[i].setReferenceHistogram (reference_histogram_tmp);
-            }
-
-            std::vector<float> reference_histogram_old = tracker_list_[i].getReferenceHistogram ();
-            if (counter_ >= 10) //build the colormodel on reliable measurements
-            {
-              float alpha = 0.3;
-              for (int i = 0; i < reference_histogram.size (); i++)
-              {
-                reference_histogram[i] = static_cast<float> ( ((1-alpha) * reference_histogram_old[i]) + (alpha * reference_histogram_tmp[i]) );
-              }
-              tracker_list_[i].setReferenceHistogram (reference_histogram);
-            }
-
-            if (counter_ >= 10 && (histogramCoherence_.BhattacharyyaDistance(reference_histogram, reference_histogram_old) > 0.8 ))
-            {
-              //set initial state
-              tracker_list_[i].setTrans (trans);
-              std::cout << "Reference colormodel " << i << " has been set." << std::endl;
-              setRef_[i] = true;
+              //only learn color model from first part in tracker_parts_ list TODO Combine the colormodels and mean state of all parts tracked by one tracker
+              label = tracker_parts_[i].size ();
             }
           }
         }
@@ -692,7 +732,7 @@ class PeoplePCDApp
     std::vector<std::vector<double> > hist_ref_double_;
     std::vector<std::vector<float> > color_;
     std::vector<bool> setRef_;
-    std::vector<int> limbs_; // list of limbs tracked by each tracker
+    std::vector<std::vector<int> > tracker_parts_; // list of parts tracked by each tracker
     std::vector<pcl::tracking::ParticleFilterTrackerHist<pcl::PointXYZRGBA, pcl::tracking::ParticleXYZRPY> > tracker_list_;
     pcl::HistogramStatistics<pcl::PointXYZHSV> histogramStatistics_;
     pcl::tracking::HistogramCoherence<pcl::PointXYZRGBA, pcl::tracking::ParticleXYZRPY> histogramCoherence_;
