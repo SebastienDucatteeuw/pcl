@@ -78,7 +78,7 @@ using namespace pcl;
 using namespace std;
 
 std::vector <double> bins(361);
-int num_of_trackers = 1;
+int num_of_trackers = 3;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -230,6 +230,21 @@ class PeoplePCDApp
       return (s == tracker_list_.size ());
     }
 
+    // returns tracker tracking this label
+    int
+    labelTrackedBy (int label)
+    {
+      int i = 0;
+      while (i < num_of_trackers)
+      {
+        if (tracker_parts_[i][label] == 1)
+          return i;
+        else
+          return -1; //this label is not tracked
+        i++;
+      }
+    }
+
     void
     convertProbToRGB (pcl::PointCloud<pcl::device::prob_histogram>& histograms, int label, pcl::PointCloud<pcl::RGB>& rgb)
     {
@@ -246,6 +261,36 @@ class PeoplePCDApp
       rgb.width = histograms.width;
       rgb.height = histograms.height;
     }
+
+    // Plot probabilities of each tracker following possibly multiple parts (due to similar colormodel)
+    void
+    convertTrackersProbToRGB (pcl::PointCloud<pcl::device::prob_histogram>& histograms, pcl::PointCloud<pcl::RGB>& rgb)
+    {
+      rgb.points.clear ();
+      for(size_t t; t < histograms.points.size(); t++)
+      {
+        pcl::RGB p;
+        char zero = static_cast<char> (0);
+        p.r = zero; p.g = zero; p.b = zero;
+        for (int label = 0; label < tracker_parts_[0].size (); label++)
+        {
+          float value = histograms.points[t].probs[label];
+          float  value8 = value * 255;
+          char val = static_cast<char> (value8);
+          int tracker = labelTrackedBy (label);
+          if (tracker == 0) // label tracked by tracker 0
+            p.r = val;
+          if (tracker == 1) // label tracked by tracker 1
+            p.b = val;
+          if (tracker == 2) // label tracked by tracker 2
+            p.g = val;
+        }
+        rgb.points.push_back(p);
+      }
+      rgb.width = histograms.width;
+      rgb.height = histograms.height;
+    }
+
 
     // Draw the current particles
     void
@@ -361,7 +406,8 @@ class PeoplePCDApp
       people_detector_.rdf_detector_->P_l_ext_.download(prob_host2.points, c);
       prob_host2.width = people_detector_.rdf_detector_->P_l_ext_.cols();
       prob_host2.height = people_detector_.rdf_detector_->P_l_ext_.rows();
-      convertProbToRGB(prob_host2, 13, prob_host_);
+      //convertProbToRGB(prob_host2, 13, prob_host_);
+      convertTrackersProbToRGB (prob_host2, prob_host_);
       prob_view_.showRGBImage<pcl::RGB> (prob_host_);
       prob_view_.spinOnce(1, true);
       //savePNGFile ("prob_distr.png", prob_host_);
@@ -407,26 +453,23 @@ std::cout << "prob" << prob_host2.points[1250].probs[i] << std::endl;
         }
 */
         // Apply KDE (Kernel Density Estimation)
-        int u_particle, v_particle, index;
-        float a, b, prob;
-        // Set the bandwidth h
-        int hu = 10;
-        int hv = 10;
-        int margin = 3;
-        float coef = 0.1592; // 1/(2*pi)
-        int u_start, u_end, v_start, v_end;
-/*
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(0)
-#endif
-*/
+        #ifdef _OPENMP
+        #pragma omp parallel for num_threads(0)
+        #endif
         for (int i = 0; i < tracker_list_.size (); i++)
         {
-          float cum_prob = 0;
+          int u_particle, v_particle, index;
+          float a, b, prob;
+          // Set the bandwidth h
+          int hu = 10;
+          int hv = 10;
+          int margin = 3;
+          float coef = 0.1592; // 1/(2*pi)
+          int u_start, u_end, v_start, v_end;
           pcl::PointCloud<pcl::tracking::ParticleXYZRPY>::Ptr particles = tracker_list_[i].getParticles ();
           if (particles)
           {
-            for (int j = 0; j < 10; j++) // particles->points.size ()
+            for (int j = 0; j < particles->points.size (); j++)
             {
               u_start = 0;
               u_end = people_detector_.rdf_detector_->P_l_ext_.cols();
@@ -461,13 +504,8 @@ std::cout << "prob" << prob_host2.points[1250].probs[i] << std::endl;
                       {
                         if (prob_PF.points[index].probs[label]+prob < 1) // no probs > 1
                         {
+                          #pragma omp atomic
                           prob_PF.points[index].probs[label] += prob;
-                          cum_prob += prob;
-                        }
-                        else
-                        {
-                          cum_prob += 1-prob_PF.points[index].probs[label];
-                          prob_PF.points[index].probs[label] = 1;
                         }
                       }
                     }
@@ -476,14 +514,6 @@ std::cout << "prob" << prob_host2.points[1250].probs[i] << std::endl;
               }
             }
           }
-/*
-          // normalize prob. distr.
-          std::cout << "cum_prob: " << cum_prob << std::endl;
-          for (int index = 0; index < prob_PF.points.size (); index++)    // iter horizontal
-          {
-                prob_PF.points[index].probs[tracker_parts_[i]] /= cum_prob;
-          }
-*/
         }
         people_detector_.rdf_detector_->P_l_ext_.upload(prob_PF.points, cols);
       }
@@ -670,7 +700,7 @@ std::cout << "prob" << prob_host2.points[1250].probs[i] << std::endl;
             {
               SampledScopeTime fps(time_ms_);
               if (setRefDone ())
-                process_return_ = people_detector_.processProb (cloud_host_);
+                0+1;//process_return_ = people_detector_.processProb (cloud_host_);
               else
                 process_return_ = people_detector_.process (cloud_host_);
               track ();
