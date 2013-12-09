@@ -235,14 +235,14 @@ class PeoplePCDApp
     labelTrackedBy (int label)
     {
       int i = 0;
+      int tracker = -1; // this label is not tracked
       while (i < num_of_trackers)
       {
         if (tracker_parts_[i][label] == 1)
-          return i;
-        else
-          return -1; //this label is not tracked
+          tracker = i;
         i++;
       }
+      return tracker;
     }
 
     void
@@ -402,11 +402,11 @@ class PeoplePCDApp
       prob_view_.showRGBImage<pcl::RGB> (prob_host_);
       prob_view_.spinOnce(1, true);
 */
-      pcl::PointCloud<pcl::device::prob_histogram> prob_host2(people_detector_.rdf_detector_->P_l_ext_.cols(), people_detector_.rdf_detector_->P_l_ext_.rows());
+      pcl::PointCloud<pcl::device::prob_histogram> prob_host2(COLS, ROWS);
       people_detector_.rdf_detector_->P_l_ext_.download(prob_host2.points, c);
-      prob_host2.width = people_detector_.rdf_detector_->P_l_ext_.cols();
-      prob_host2.height = people_detector_.rdf_detector_->P_l_ext_.rows();
-      //convertProbToRGB(prob_host2, 13, prob_host_);
+      prob_host2.width = COLS;
+      prob_host2.height = ROWS;
+      //convertProbToRGB(prob_host2, 17, prob_host_);
       convertTrackersProbToRGB (prob_host2, prob_host_);
       prob_view_.showRGBImage<pcl::RGB> (prob_host_);
       prob_view_.spinOnce(1, true);
@@ -422,9 +422,8 @@ std::cout << "prob" << prob_host2.points[1250].probs[i] << std::endl;
     void
     processProbPF ()
     {
-      int cols = people_detector_.rdf_detector_->P_l_2_.cols();
       int u, v;
-      pcl::PointCloud<pcl::device::prob_histogram> prob_PF (people_detector_.rdf_detector_->P_l_2_.cols(), people_detector_.rdf_detector_->P_l_2_.rows());
+      pcl::PointCloud<pcl::device::prob_histogram> prob_PF (COLS, ROWS);
       static const float cx = 320-.5;
       static const float cy = 240-.5;
       static const float f = 525;
@@ -515,7 +514,7 @@ std::cout << "prob" << prob_host2.points[1250].probs[i] << std::endl;
             }
           }
         }
-        people_detector_.rdf_detector_->P_l_ext_.upload(prob_PF.points, cols);
+        people_detector_.rdf_detector_->P_l_ext_.upload(prob_PF.points, COLS);
       }
     }
 
