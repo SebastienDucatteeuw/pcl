@@ -460,8 +460,8 @@ std::cout << "prob" << prob_host2.points[1250].probs[i] << std::endl;
           int u_particle, v_particle, index;
           float a, b, prob;
           // Set the bandwidth h
-          int hu = 10;
-          int hv = 10;
+          int hu = 8;
+          int hv = 8;
           int margin = 3;
           float coef = 0.1592; // 1/(2*pi)
           int u_start, u_end, v_start, v_end;
@@ -529,6 +529,9 @@ std::cout << "prob" << prob_host2.points[1250].probs[i] << std::endl;
         pcl::PointCloud<pcl::PointXYZRGBA> segmented_cloud;
         pcl::PointCloud<pcl::PointXYZHSV> segmented_cloud_HSV;
         pcl::ExtractIndices<pcl::PointXYZRGBA> extract;
+        std::vector<float> reference_histogram (361);
+        std::vector<float> reference_histogram_tmp (361);
+
         for (int i = 0; i < tracker_list_.size (); i++)
         {
           for (int label = 0; label < tracker_parts_[i].size (); label++)
@@ -537,6 +540,10 @@ std::cout << "prob" << prob_host2.points[1250].probs[i] << std::endl;
             {
               if (people_detector_.t2_.parts_lid[label] != -3);
               {
+                segmented_cloud.points.clear ();
+                segmented_cloud_HSV.points.clear ();
+                reference_histogram_tmp.clear ();
+
                 pcl::PointIndices::Ptr indicesPtr (new pcl::PointIndices);
                 indicesPtr->indices = sorted[label][people_detector_.t2_.parts_lid[label]].indices.indices;
 
@@ -549,17 +556,13 @@ std::cout << "prob" << prob_host2.points[1250].probs[i] << std::endl;
                 c[2] = mean(2);
                 trans.translation ().matrix () = c;
 
-                //calculate initial colormodel
-                std::vector<float> reference_histogram (361);
-                std::vector<float> reference_histogram_tmp (361);
-
                 //Replace wrong indices with zeros
                 int n = 0;
-                for (int i = 0; i < indicesPtr->indices.size (); i++)
+                for (int j = 0; j < indicesPtr->indices.size (); j++)
                 {
-                  if ((indicesPtr->indices[i] > 307199) || (indicesPtr->indices[i] < 0))
+                  if ((indicesPtr->indices[j] > 307199) || (indicesPtr->indices[j] < 0))
                   {
-                    indicesPtr->indices[i] = 0;
+                    indicesPtr->indices[j] = 0;
                   }
                 }
 
@@ -568,9 +571,9 @@ std::cout << "prob" << prob_host2.points[1250].probs[i] << std::endl;
                 std::ofstream writefile;
                 writefile.open (filename.c_str()); //, ios::out | ios::app); //add to append the file
                 writefile << "Frame number: " << counter_ << std::endl;
-                for (int i = 0; i < indicesPtr->indices.size (); i++)
+                for (int j = 0; j < indicesPtr->indices.size (); j++)
                 {
-                  writefile << indicesPtr->indices[i] << std::endl;
+                  writefile << indicesPtr->indices[j] << std::endl;
                 }
                 writefile.close ();
                 */
@@ -599,12 +602,12 @@ std::cout << "prob" << prob_host2.points[1250].probs[i] << std::endl;
                 }
 
                 std::vector<float> reference_histogram_old = tracker_list_[i].getReferenceHistogram ();
-                if (counter_ >= 10) //build the colormodel on reliable measurements
+                if (counter_ >= 10 && (setRef_[i] == false)) //build the colormodel on reliable measurements
                 {
                   float alpha = 0.3;
-                  for (int i = 0; i < reference_histogram.size (); i++)
+                  for (int j = 0; j < reference_histogram.size (); j++)
                   {
-                    reference_histogram[i] = static_cast<float> ( ((1-alpha) * reference_histogram_old[i]) + (alpha * reference_histogram_tmp[i]) );
+                    reference_histogram[j] = static_cast<float> ( ((1-alpha) * reference_histogram_old[j]) + (alpha * reference_histogram_tmp[j]) );
                   }
                   tracker_list_[i].setReferenceHistogram (reference_histogram);
                 }
@@ -699,7 +702,7 @@ std::cout << "prob" << prob_host2.points[1250].probs[i] << std::endl;
             {
               SampledScopeTime fps(time_ms_);
               if (setRefDone ())
-                0+1;//process_return_ = people_detector_.processProb (cloud_host_);
+                process_return_ = people_detector_.processProb (cloud_host_);
               else
                 process_return_ = people_detector_.process (cloud_host_);
               track ();
