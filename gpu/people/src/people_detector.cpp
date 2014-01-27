@@ -309,7 +309,7 @@ pcl::gpu::people::PeopleDetector::processProb ()
     for(int i = 0; i < kernel_size; i++)
       PCL_DEBUG("\t Entry %d \t: %lf\n", i, kernel_ptr_host[i]);
 
-/* original code
+/* original code*/
 if(probability_processor_->GaussianBlur(depth_device1_,rdf_detector_->P_l_2_, kernel_device, rdf_detector_->P_l_Gaus_Temp_ ,rdf_detector_->P_l_Gaus_) != 1)
   PCL_ERROR("[pcl::gpu::people::PeopleDetector::processProb] : (E) : Gaussian Blur failed\n");
 
@@ -319,13 +319,14 @@ PCL_DEBUG("[pcl::gpu::people::PeopleDetector::processProb] : (D) : CombineProb c
 
 // get labels
 probability_processor_->SelectLabel(depth_device1_, rdf_detector_->labels_, rdf_detector_->P_l_Gaus_Temp_);
-*/
+/**/
 
+/* first proposal
     if(probability_processor_->GaussianBlur(depth_device1_, rdf_detector_->P_l_2_, kernel_device, rdf_detector_->P_l_Gaus_Temp_, rdf_detector_->P_l_Gaus_) != 1)
       PCL_ERROR("[pcl::gpu::people::PeopleDetector::processProb] : (E) : Gaussian Blur failed\n");
 
     // merge prior and PF probabilities at this line
-    probability_processor_->CombineProb(depth_device1_, rdf_detector_->P_l_ext_, 0, rdf_detector_->P_l_, 1, rdf_detector_->P_l_ext_Gaus_);
+    probability_processor_->CombineProb(depth_device1_, rdf_detector_->P_l_ext_, 0.5, rdf_detector_->P_l_, 0.5, rdf_detector_->P_l_ext_Gaus_);
     PCL_DEBUG("[pcl::gpu::people::PeopleDetector::processProb] : (D) : CombineProb called\n");
 
     // merge with new probabilities at this line
@@ -334,6 +335,22 @@ probability_processor_->SelectLabel(depth_device1_, rdf_detector_->labels_, rdf_
 
     // get labels
     probability_processor_->SelectLabel(depth_device1_, rdf_detector_->labels_, rdf_detector_->P_l_Gaus_Temp_);
+*/
+/* second proposal
+    if(probability_processor_->GaussianBlur(depth_device1_, rdf_detector_->P_l_2_, kernel_device, rdf_detector_->P_l_Gaus_Temp_, rdf_detector_->P_l_Gaus_) != 1)
+      PCL_ERROR("[pcl::gpu::people::PeopleDetector::processProb] : (E) : Gaussian Blur failed\n");
+
+    // merge prior and PF probabilities at this line
+    probability_processor_->CombineProb(depth_device1_, rdf_detector_->P_l_ext_, 1, rdf_detector_->P_l_Gaus_, 0, rdf_detector_->P_l_ext_Gaus_);
+    PCL_DEBUG("[pcl::gpu::people::PeopleDetector::processProb] : (D) : CombineProb called\n");
+
+    // merge with new probabilities at this line
+    probability_processor_->CombineProb(depth_device1_, rdf_detector_->P_l_, 0.5, rdf_detector_->P_l_ext_Gaus_, 0.5, rdf_detector_->P_l_Gaus_Temp_);
+    PCL_DEBUG("[pcl::gpu::people::PeopleDetector::processProb] : (D) : CombineProb called\n");
+
+    // get labels
+    probability_processor_->SelectLabel(depth_device1_, rdf_detector_->labels_, rdf_detector_->P_l_Gaus_Temp_);
+*/
   }
 
   // This executes the connected components
@@ -372,6 +389,9 @@ probability_processor_->SelectLabel(depth_device1_, rdf_detector_->labels_, rdf_
 
     rdf_detector_->processProb(depth_device2_);
     // TODO: merge with prior probabilities at this line
+// merge prior and PF probabilities at this line
+//probability_processor_->CombineProb(depth_device1_, rdf_detector_->P_l_ext_, 0.5, rdf_detector_->P_l_, 0.5, rdf_detector_->P_l_ext_Gaus_);
+//PCL_DEBUG("[pcl::gpu::people::PeopleDetector::processProb] : (D) : CombineProb called\n");
 
     // get labels
     probability_processor_->SelectLabel(depth_device1_, rdf_detector_->labels_, rdf_detector_->P_l_);
