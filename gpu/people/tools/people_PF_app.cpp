@@ -147,7 +147,7 @@ class PeoplePCDApp
         depth_view_ ("Depth"),
         histogram_view_ ("Colormodels tracked limbs"),
         cloud_view_ ("Pointcloud with PF"),
-        prob_view_ ("Probability distribution arm"),
+        prob_view_ ("Probability distribution PF labels"),
         hist_ref_ (num_of_trackers, std::vector<float> (361)),
         hist_ref_double_ (num_of_trackers, std::vector<double> (361)),
         tracker_parts_ (num_of_trackers, std::vector<int> (32)),
@@ -189,7 +189,7 @@ class PeoplePCDApp
       if (num_of_trackers >= 2)
       {
         color_ [1][0] = 0;
-        color_ [1][1] = 250;
+        color_ [1][1] = 0;
         color_ [1][2] = 255;
       }
       if (num_of_trackers >= 3)
@@ -393,29 +393,40 @@ class PeoplePCDApp
       histogram_view_.spinOnce ();
 
       //---- Draw probability distribution
-/*
+
       pcl::PointCloud<pcl::device::prob_histogram> prob_host2(people_detector_.rdf_detector_->P_l_2_.cols(), people_detector_.rdf_detector_->P_l_2_.rows());
-      people_detector_.rdf_detector_->P_l_2_.download(prob_host2.points, c);
+      people_detector_.rdf_detector_->P_l_Gaus_Temp_.download(prob_host2.points, c);
       prob_host2.width = people_detector_.rdf_detector_->P_l_2_.cols();
       prob_host2.height = people_detector_.rdf_detector_->P_l_2_.rows();
-      convertProbToRGB(prob_host2, 13, prob_host_); //get prob 2nd iter of Rforearm
+      convertProbToRGB(prob_host2, 13, prob_host_); //get prob 2nd iter of Lforearm (17) background (29)
       prob_view_.showRGBImage<pcl::RGB> (prob_host_);
       prob_view_.spinOnce(1, true);
-*/
+/*
       pcl::PointCloud<pcl::device::prob_histogram> prob_host2(COLS, ROWS);
       people_detector_.rdf_detector_->P_l_ext_.download(prob_host2.points, c);
       prob_host2.width = COLS;
       prob_host2.height = ROWS;
-      //convertProbToRGB(prob_host2, 17, prob_host_);
       convertTrackersProbToRGB (prob_host2, prob_host_);
       prob_view_.showRGBImage<pcl::RGB> (prob_host_);
       prob_view_.spinOnce(1, true);
       //savePNGFile ("prob_distr.png", prob_host_);
-/*
+*/
+/* Check normalization of pixel part proposals
+int point = 0;
+for (int i =0; i < prob_host2.points.size (); i++)
+{
+  if (prob_host2.points[i].probs[23] != 0)
+    point = i;
+}
+std::cout << "point: " << point << std::endl;
+
 float tot_prob = 0;
 for (int i = 0; i < 32; i++)
-  tot_prob += prob_host2.points[1250].probs[i];
-std::cout << "prob" << prob_host2.points[1250].probs[i] << std::endl;
+{
+  tot_prob += prob_host2.points[point].probs[i]; // cum. prob. of point
+  std::cout << "prob " << i << ": " << prob_host2.points[point].probs[i] << std::endl;
+}
+std::cout << "tot prob" << tot_prob << std::endl;
 */
     }
 
@@ -460,8 +471,8 @@ std::cout << "prob" << prob_host2.points[1250].probs[i] << std::endl;
           int u_particle, v_particle, index;
           float a, b, prob;
           // Set the bandwidth h
-          int hu = 8;
-          int hv = 8;
+          int hu = 4;
+          int hv = 4;
           int margin = 3;
           float coef = 0.1592; // 1/(2*pi)
           int u_start, u_end, v_start, v_end;
@@ -494,18 +505,15 @@ std::cout << "prob" << prob_host2.points[1250].probs[i] << std::endl;
                   a = (u-u_particle)/hu;
                   b = (v-v_particle)/hv;
                   index = u + v*people_detector_.rdf_detector_->P_l_ext_.cols();
-                  if (index >= 0 && index < 307200)
+                  if (index >= 0 && index < prob_PF.points.size ())
                   {
                     prob = coef * std::exp(- (std::pow(a, 2) + std::pow(b, 2)) / 2);
                     for (int label = 0; label < tracker_parts_[i].size (); label++) //loop over labels to be tracked by tracker i
                     {
                       if (tracker_parts_[i][label] == 1) // assign the probs only to the labels tracked by tracker i
                       {
-                        if (prob_PF.points[index].probs[label]+prob < 1) // no probs > 1
-                        {
-                          #pragma omp atomic
-                          prob_PF.points[index].probs[label] += prob;
-                        }
+                        #pragma omp atomic
+                        prob_PF.points[index].probs[label] += prob;
                       }
                     }
                   }
@@ -513,6 +521,18 @@ std::cout << "prob" << prob_host2.points[1250].probs[i] << std::endl;
               }
             }
           }
+        }
+        //normalize pixel part proposals
+        for (int i = 0; i < prob_PF.points.size (); i++)  // loop over all pixels
+        {
+          //calulate sum of proposals
+          float sum = 0;
+          for (int j = 0; j < 32; j++)
+            sum += prob_PF.points[i].probs[j];
+          //normalize proposals to 0.75
+          for (int j = 0; j < 32; j++)
+            if (sum != 0)
+              prob_PF.points[i].probs[j] *= 0.75/sum;
         }
         people_detector_.rdf_detector_->P_l_ext_.upload(prob_PF.points, COLS);
       }
@@ -604,7 +624,7 @@ std::cout << "prob" << prob_host2.points[1250].probs[i] << std::endl;
                 std::vector<float> reference_histogram_old = tracker_list_[i].getReferenceHistogram ();
                 if (counter_ >= 10 && (setRef_[i] == false)) //build the colormodel on reliable measurements
                 {
-                  float alpha = 0.3;
+                  float alpha = 0.10;
                   for (int j = 0; j < reference_histogram.size (); j++)
                   {
                     reference_histogram[j] = static_cast<float> ( ((1-alpha) * reference_histogram_old[j]) + (alpha * reference_histogram_tmp[j]) );
@@ -612,7 +632,7 @@ std::cout << "prob" << prob_host2.points[1250].probs[i] << std::endl;
                   tracker_list_[i].setReferenceHistogram (reference_histogram);
                 }
 
-                if (counter_ >= 10 && (histogramCoherence_.BhattacharyyaDistance(reference_histogram, reference_histogram_old) > 0.8 ))
+                if (counter_ >= 10 && (histogramCoherence_.BhattacharyyaDistance(reference_histogram, reference_histogram_old) > 0.85 ))
                 {
                   //set initial state
                   tracker_list_[i].setTrans (trans);
